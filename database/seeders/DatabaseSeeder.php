@@ -23,6 +23,8 @@ class DatabaseSeeder extends Seeder
                 SettingsTableSeeder::class,
                 ProdukTableSeeder::class,
                 StudioSeeder::class,
+                LayananSeeder::class,
+                VoucherSeeder::class,
             ]);
 
             echo "\n✅ All seeders completed successfully!\n";

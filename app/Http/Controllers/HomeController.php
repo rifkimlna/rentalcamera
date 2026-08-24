@@ -5,6 +5,12 @@ namespace App\Http\Controllers;
 use App\Models\Produk;
 use App\Models\KategoriProduk;
 use App\Models\Brand;
+use App\Models\Portfolio;
+use App\Models\Ulasan;
+use App\Models\Transaksis;
+use App\Models\Studio;
+use App\Models\Layanan;
+use App\Models\User;
 use Illuminate\Http\Request;
 
 class HomeController extends Controller
@@ -29,10 +35,42 @@ class HomeController extends Controller
             ->get();
 
         $categories = KategoriProduk::where('status', 'active')
+            ->with(['products' => fn ($q) => $q->where('status', 'available')->orderBy('created_at', 'desc')])
             ->orderBy('urutan', 'asc')
             ->get();
 
-        return view('home', compact('featuredProducts', 'recommendedProducts', 'categories'));
+        $studios = Studio::where('status', 'active')
+            ->orderBy('rating', 'desc')
+            ->limit(4)
+            ->get();
+
+        $layanans = Layanan::where('status', 'active')
+            ->orderBy('rating', 'desc')
+            ->limit(4)
+            ->get();
+
+        $testimonials = Ulasan::with('user')
+            ->approved()
+            ->whereNotNull('komentar')
+            ->inRandomOrder()
+            ->limit(6)
+            ->get();
+
+        $stats = [
+            'products' => Produk::where('status', 'available')->count(),
+            'customers' => User::where('role', 'customer')->count(),
+            'transactions' => Transaksis::whereIn('status_pembayaran', ['settlement', 'capture'])->count(),
+            'satisfaction' => 98,
+        ];
+
+        $faqs = [
+            ['question' => 'Berapa lama proses penyewaan?', 'answer' => 'Proses penyewaan dapat diselesaikan dalam waktu 1-2 jam setelah pembayaran berhasil.'],
+            ['question' => 'Bagaimana cara pengembalian alat?', 'answer' => 'Anda dapat mengembalikan alat langsung ke toko kami. Pastikan alat dalam kondisi baik dan lengkap.'],
+            ['question' => 'Boleh memperpanjang masa sewa?', 'answer' => 'Ya, Anda dapat memperpanjang masa sewa dengan menghubungi customer service kami sebelum masa sewa berakhir.'],
+            ['question' => 'Bagaimana jika alat rusak?', 'answer' => 'Jika terjadi kerusakan, Anda akan dikenakan biaya perbaikan sesuai dengan tingkat kerusakan.'],
+        ];
+
+        return view('home', compact('featuredProducts', 'recommendedProducts', 'categories', 'studios', 'layanans', 'testimonials', 'stats', 'faqs'));
     }
 
     /**
@@ -40,7 +78,8 @@ class HomeController extends Controller
      */
     public function about()
     {
-        return view('about');
+        $portfolios = Portfolio::active()->ordered()->get();
+        return view('about', compact('portfolios'));
     }
 
     /**
@@ -165,10 +204,6 @@ class HomeController extends Controller
             [
                 'question' => 'Bagaimana cara pengembalian alat?',
                 'answer' => 'Anda dapat mengembalikan alat langsung ke toko kami atau menggunakan jasa kurir yang telah kami sediakan. Pastikan alat dalam kondisi baik dan lengkap.'
-            ],
-            [
-                'question' => 'Apakah ada deposit?',
-                'answer' => 'Ya, kami memerlukan deposit sebesar 20% dari total harga sewa. Deposit akan dikembalikan setelah alat dikembalikan dalam kondisi baik.'
             ],
             [
                 'question' => 'Boleh memperpanjang masa sewa?',

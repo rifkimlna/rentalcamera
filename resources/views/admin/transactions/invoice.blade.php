@@ -46,7 +46,7 @@
         .thank-you { font-weight: bold; margin-bottom: 3px; }
         .terms { font-style: italic; margin-bottom: 3px; }
         .print-time { font-size: 8px; color: #666; }
-        .divider { text-align: center; margin: 8px 0; font-size: 11px; }
+        .border-t border-[#f0f0f2] { text-align: center; margin: 8px 0; font-size: 11px; }
         @media print {
             body { padding: 2mm; }
             .no-print { display: none; }
@@ -62,8 +62,8 @@
 <body>
     <div class="invoice">
         <div class="header">
-            <div class="company-name">SEWA KAMERA PRO</div>
-            <div class="company-address">Jl. Contoh No. 123, Jakarta</div>
+            <div class="company-name">Stekpro Multimedia & Broadcast</div>
+            <div class="company-address">Jl. Contoh No. 123, Sukabumi</div>
             <div class="company-contact">Tel: 0812-3456-7890</div>
             <div class="company-contact">www.sewakamerapro.com</div>
         </div>
@@ -103,16 +103,6 @@
             <div class="rental-row"><div class="rental-label">Metode:</div><div class="rental-value">{{ $transaction->metode_pengambilan_label }}</div></div>
         </div>
 
-        @if($transaction->alamat_pengiriman)
-        <div class="section">
-            <div class="section-title">ALAMAT PENGIRIMAN</div>
-            <div style="font-size: 10px; line-height: 1.2;">
-                {{ $transaction->alamat_pengiriman }}<br>
-                {{ $transaction->kota_pengiriman }}, {{ $transaction->provinsi_pengiriman }}
-            </div>
-        </div>
-        @endif
-
         <div class="section">
             <div class="section-title">DETAIL PRODUK</div>
             <table class="products-table">
@@ -142,15 +132,12 @@
             <div style="font-size: 10px; text-align: center; margin-top: 3px;">Total Item: {{ $totalItems }} barang</div>
         </div>
 
-        <div class="divider">---------------------------</div>
+        <div class="border-t border-[#f0f0f2]">---------------------------</div>
 
         <div class="summary">
             <div class="summary-row"><div class="summary-label">Subtotal:</div><div class="summary-value">{{ number_format($transaction->subtotal, 0, ',', '.') }}</div></div>
             @if($transaction->diskon > 0)
             <div class="summary-row"><div class="summary-label">Diskon:</div><div class="summary-value">-{{ number_format($transaction->diskon, 0, ',', '.') }}</div></div>
-            @endif
-            @if($transaction->biaya_pengiriman > 0)
-            <div class="summary-row"><div class="summary-label">Ongkir:</div><div class="summary-value">{{ number_format($transaction->biaya_pengiriman, 0, ',', '.') }}</div></div>
             @endif
             @if($transaction->biaya_asuransi > 0)
             <div class="summary-row"><div class="summary-label">Asuransi:</div><div class="summary-value">{{ number_format($transaction->biaya_asuransi, 0, ',', '.') }}</div></div>
@@ -159,14 +146,13 @@
             <div class="summary-row"><div class="summary-label">Lainnya:</div><div class="summary-value">{{ number_format($transaction->biaya_lainnya, 0, ',', '.') }}</div></div>
             @endif
             <div class="summary-row"><div class="summary-label">Total Sewa:</div><div class="summary-value">{{ number_format($transaction->total_sewa, 0, ',', '.') }}</div></div>
-            <div class="summary-row"><div class="summary-label">Deposit:</div><div class="summary-value">{{ number_format($transaction->deposit_amount, 0, ',', '.') }}</div></div>
             @if($transaction->admin_fee > 0)
             <div class="summary-row"><div class="summary-label">Biaya Admin:</div><div class="summary-value">{{ number_format($transaction->admin_fee, 0, ',', '.') }}</div></div>
             @endif
             <div class="summary-row grand-total-row"><div class="summary-label">GRAND TOTAL:</div><div class="summary-value">Rp {{ number_format($transaction->grand_total, 0, ',', '.') }}</div></div>
         </div>
 
-        <div class="divider">---------------------------</div>
+        <div class="border-t border-[#f0f0f2]">---------------------------</div>
 
         @if($transaction->paymentMethod)
         <div class="payment-info">
@@ -195,8 +181,6 @@
 
         <div class="footer">
             <div class="thank-you">TERIMA KASIH</div>
-            <div class="terms">* Deposit akan dikembalikan setelah barang dikembalikan dalam kondisi baik</div>
-            <div class="terms">* Denda keterlambatan 10%/hari dari deposit</div>
             <div class="print-time">Dicetak: {{ now()->format('d/m/Y H:i:s') }}</div>
         </div>
 

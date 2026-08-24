@@ -3,64 +3,49 @@
 @section('title', 'Harga Sewa')
 
 @section('content')
-<section class="bg-base-100">
-    <div class="max-w-6xl mx-auto px-4 py-16">
-        <p class="text-xs text-base-content/40 uppercase tracking-wider mb-2">Harga Sewa</p>
-        <h1 class="text-3xl font-light tracking-tight mb-3">Harga Sewa Kamera</h1>
-        <p class="text-sm text-base-content/50 mb-10 max-w-lg">Harga transparan tanpa biaya tersembunyi. Pilih durasi sewa sesuai kebutuhan Anda.</p>
+<section class="section-dim">
+    <div class="max-w-7xl mx-auto px-5 sm:px-8 lg:px-12 py-24 lg:py-32">
+        <p class="text-sm font-medium text-[#86868b] mb-4 tracking-wide">Harga Sewa</p>
+        <h1 class="text-4xl md:text-5xl font-bold tracking-tight text-[#1d1d1f] mb-4">Harga Sewa Kamera</h1>
+        <p class="text-base text-[#6e6e73] mb-12 max-w-lg">Harga transparan tanpa biaya tersembunyi. Pilih durasi sewa sesuai kebutuhan Anda.</p>
 
-        <div class="overflow-x-auto">
-            <table class="table w-full">
-                <thead>
-                    <tr class="text-xs text-base-content/40 uppercase tracking-wider border-b border-base-300">
-                        <th class="font-normal pb-3">Produk</th>
-                        <th class="font-normal pb-3">Kategori</th>
-                        <th class="font-normal pb-3 text-right">Per Hari</th>
-                        <th class="font-normal pb-3 text-right">Per Minggu</th>
-                        <th class="font-normal pb-3 text-right">Per Bulan</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    @forelse($products as $product)
-                    <tr class="border-b border-base-200 text-sm">
-                        <td class="py-3">
-                            <a href="{{ route('product.detail', $product->slug) }}" class="link link-hover font-medium">{{ $product->nama_produk }}</a>
-                        </td>
-                        <td class="py-3 text-base-content/50">{{ $product->kategori->nama_kategori ?? '-' }}</td>
-                        <td class="py-3 text-right">Rp {{ number_format($product->harga_per_hari, 0, ',', '.') }}</td>
-                        <td class="py-3 text-right">
-                            @if($product->harga_per_minggu)
-                                Rp {{ number_format($product->harga_per_minggu, 0, ',', '.') }}
-                            @else
-                                <span class="text-base-content/30">-</span>
-                            @endif
-                        </td>
-                        <td class="py-3 text-right">
-                            @if($product->harga_per_bulan)
-                                Rp {{ number_format($product->harga_per_bulan, 0, ',', '.') }}
-                            @else
-                                <span class="text-base-content/30">-</span>
-                            @endif
-                        </td>
-                    </tr>
-                    @empty
-                    <tr>
-                        <td colspan="5" class="text-center py-10 text-base-content/40 text-sm">Belum ada produk tersedia.</td>
-                    </tr>
-                    @endforelse
-                </tbody>
-            </table>
+        <div class="card-apple-static overflow-hidden">
+            <div class="overflow-x-auto">
+                <table class="w-full">
+                    <thead>
+                        <tr class="border-b border-[#f0f0f2]">
+                            <th class="text-left text-xs font-semibold text-[#86868b] uppercase tracking-wider px-6 py-4">Produk</th>
+                            <th class="text-left text-xs font-semibold text-[#86868b] uppercase tracking-wider px-6 py-4">Kategori</th>
+                            <th class="text-right text-xs font-semibold text-[#86868b] uppercase tracking-wider px-6 py-4">Per Hari</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @forelse($products as $product)
+                            <tr class="border-b border-[#f0f0f2] last:border-0 hover:bg-[#fafafa] transition-colors">
+                                <td class="px-6 py-4">
+                                    <a href="{{ route('product.detail', $product->slug) }}" class="text-sm font-medium text-[#1d1d1f] hover:text-[#0071e3] transition-colors">{{ $product->nama_produk }}</a>
+                                </td>
+                                <td class="px-6 py-4 text-sm text-[#6e6e73]">{{ $product->kategori->nama_kategori ?? '-' }}</td>
+                                <td class="px-6 py-4 text-right text-sm font-semibold text-[#1d1d1f]">Rp {{ number_format($product->harga_per_hari, 0, ',', '.') }}</td>
+                            </tr>
+                        @empty
+                            <tr>
+                                <td colspan="3" class="px-6 py-16 text-center text-sm text-[#86868b]">Belum ada produk tersedia.</td>
+                            </tr>
+                        @endforelse
+                    </tbody>
+                </table>
+            </div>
         </div>
+    </div>
+</section>
 
-        <div class="mt-10 bg-base-200 border border-base-300 rounded-box p-6 max-w-2xl">
-            <p class="font-medium text-sm mb-2">Informasi Deposit</p>
-            <p class="text-sm text-base-content/60 leading-relaxed">
-                Setiap penyewaan dikenakan deposit sebesar 20% dari total biaya sewa. 
-                Deposit akan dikembalikan sepenuhnya setelah peralatan dikembalikan dalam 
-                kondisi baik dan lengkap sesuai dengan pemeriksaan. Pembayaran deposit 
-                dapat dilakukan melalui transfer bank atau dompet digital.
-            </p>
-        </div>
+{{-- CTA --}}
+<section class="section-darker">
+    <div class="max-w-7xl mx-auto px-5 sm:px-8 lg:px-12 py-20 text-center">
+        <h2 class="text-3xl font-bold tracking-tight text-white mb-4">Butuh penawaran khusus?</h2>
+        <p class="text-base text-white/50 mb-8">Hubungi kami untuk harga sewa dalam jumlah banyak atau durasi panjang.</p>
+        <a href="{{ route('contact') }}" class="btn-primary-apple">Hubungi Kami</a>
     </div>
 </section>
 @endsection

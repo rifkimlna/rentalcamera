@@ -12,7 +12,7 @@ return new class extends Migration
             $table->id();
             $table->string('code', 50)->unique();
             $table->string('name', 100);
-            $table->enum('type', ['bank_transfer', 'ewallet', 'qris', 'credit_card', 'cstore', 'cod', 'deposit']);
+            $table->enum('type', ['bank_transfer', 'ewallet', 'qris', 'credit_card', 'cstore', 'cod']);
             $table->string('bank_code', 20)->nullable();
             $table->decimal('fee_percentage', 5, 2)->default(0);
             $table->decimal('fee_flat', 12, 2)->default(0);

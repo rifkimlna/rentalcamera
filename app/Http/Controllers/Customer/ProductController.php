@@ -166,18 +166,18 @@ class ProductController extends Controller
         
         // Calculate price
         $totalPrice = $product->harga_per_hari * $lamaSewa * $request->quantity;
-        $deposit = $product->harga_per_hari * 2 * $request->quantity; // 2 days deposit
         
         return response()->json([
             'available' => true,
             'rental_days' => $lamaSewa,
             'price_per_day' => $product->harga_per_hari,
             'total_price' => $totalPrice,
-            'deposit' => $deposit,
-            'subtotal' => $totalPrice + $deposit,
+            'subtotal' => $totalPrice,
             'available_stock' => $product->stok_tersedia,
             'start_date' => $request->tanggal_sewa,
             'end_date' => $request->tanggal_kembali,
+            'nama_produk' => $product->nama_produk,
+            'harga_formatted' => $product->harga_per_hari_formatted,
         ]);
     }
 }

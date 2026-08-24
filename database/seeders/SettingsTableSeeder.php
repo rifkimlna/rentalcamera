@@ -17,7 +17,7 @@ class SettingsTableSeeder extends Seeder
             // General Settings
             [
                 'key' => 'app_name',
-                'value' => 'Sewa Kamera Pro',
+                'value' => 'Stekpro Multimedia & Broadcast',
                 'type' => 'text',
                 'group' => 'general',
                 'description' => 'Nama aplikasi',
@@ -89,7 +89,7 @@ class SettingsTableSeeder extends Seeder
             // Company Information
             [
                 'key' => 'company_name',
-                'value' => 'Sewa Kamera Pro Indonesia',
+                'value' => 'Stekpro Multimedia & Broadcast Indonesia',
                 'type' => 'text',
                 'group' => 'company',
                 'description' => 'Nama perusahaan',
@@ -166,65 +166,6 @@ class SettingsTableSeeder extends Seeder
                 'group' => 'rental',
                 'description' => 'Refund pengembalian awal (%)',
             ],
-            [
-                'key' => 'deposit_percentage',
-                'value' => '20',
-                'type' => 'number',
-                'group' => 'rental',
-                'description' => 'Persentase deposit dari total sewa',
-            ],
-            [
-                'key' => 'deposit_refund_days',
-                'value' => '3',
-                'type' => 'number',
-                'group' => 'rental',
-                'description' => 'Hari pengembalian deposit setelah selesai sewa',
-            ],
-
-            // Shipping Settings
-            [
-                'key' => 'shipping_enabled',
-                'value' => '1',
-                'type' => 'boolean',
-                'group' => 'shipping',
-                'description' => 'Aktifkan pengiriman',
-            ],
-            [
-                'key' => 'shipping_fee',
-                'value' => '20000',
-                'type' => 'number',
-                'group' => 'shipping',
-                'description' => 'Biaya pengiriman default',
-            ],
-            [
-                'key' => 'free_shipping_min_amount',
-                'value' => '500000',
-                'type' => 'number',
-                'group' => 'shipping',
-                'description' => 'Minimum belanja untuk gratis ongkir',
-            ],
-            [
-                'key' => 'pickup_enabled',
-                'value' => '1',
-                'type' => 'boolean',
-                'group' => 'shipping',
-                'description' => 'Aktifkan ambil di tempat',
-            ],
-            [
-                'key' => 'same_day_delivery_cutoff',
-                'value' => '14:00',
-                'type' => 'text',
-                'group' => 'shipping',
-                'description' => 'Batas waktu untuk same-day delivery',
-            ],
-            [
-                'key' => 'delivery_range_km',
-                'value' => '50',
-                'type' => 'number',
-                'group' => 'shipping',
-                'description' => 'Jangkauan pengiriman (km)',
-            ],
-
             // Payment Settings
             [
                 'key' => 'payment_expiry_hours',
@@ -239,20 +180,6 @@ class SettingsTableSeeder extends Seeder
                 'type' => 'number',
                 'group' => 'payment',
                 'description' => 'Otomatis batalkan pesanan belum bayar (jam)',
-            ],
-            [
-                'key' => 'min_deposit_topup',
-                'value' => '50000',
-                'type' => 'number',
-                'group' => 'payment',
-                'description' => 'Minimum topup deposit',
-            ],
-            [
-                'key' => 'max_deposit_topup',
-                'value' => '10000000',
-                'type' => 'number',
-                'group' => 'payment',
-                'description' => 'Maksimum topup deposit',
             ],
             [
                 'key' => 'midtrans_enabled',
@@ -272,7 +199,7 @@ class SettingsTableSeeder extends Seeder
             // Email Settings
             [
                 'key' => 'mail_from_name',
-                'value' => 'Sewa Kamera Pro',
+                'value' => 'Stekpro Multimedia & Broadcast',
                 'type' => 'text',
                 'group' => 'email',
                 'description' => 'Nama pengirim email',
@@ -305,14 +232,6 @@ class SettingsTableSeeder extends Seeder
                 'group' => 'email',
                 'description' => 'Kirim konfirmasi pembayaran',
             ],
-            [
-                'key' => 'send_shipping_notification',
-                'value' => '1',
-                'type' => 'boolean',
-                'group' => 'email',
-                'description' => 'Kirim notifikasi pengiriman',
-            ],
-
             // Notification Settings
             [
                 'key' => 'notify_new_order',
@@ -360,7 +279,7 @@ class SettingsTableSeeder extends Seeder
             // SEO Settings
             [
                 'key' => 'meta_title',
-                'value' => 'Sewa Kamera Pro - Penyewaan Kamera Profesional',
+                'value' => 'Stekpro Multimedia & Broadcast - Penyewaan Kamera Profesional',
                 'type' => 'text',
                 'group' => 'seo',
                 'description' => 'Meta title',

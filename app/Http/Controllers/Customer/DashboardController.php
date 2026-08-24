@@ -4,8 +4,6 @@ namespace App\Http\Controllers\Customer;
 
 use App\Http\Controllers\Controller;
 use App\Models\User;
-use App\Models\Keranjang;
-use App\Models\Ulasan;
 use App\Models\ActivityLog;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -29,11 +27,7 @@ class DashboardController extends Controller
             ->limit(5)
             ->get();
         
-        // Recent deposit transactions
-        $recentDeposits = $user->depositTransactions()
-            ->orderBy('created_at', 'desc')
-            ->limit(5)
-            ->get();
+
         
         // Cart items count
         $cartCount = $user->keranjangs()->count();
@@ -49,14 +43,14 @@ class DashboardController extends Controller
                 ->where('status_transaksi', 'selesai')
                 ->count(),
             'pending_orders' => $user->transaksis()
-                ->whereIn('status_transaksi', ['dikonfirmasi', 'dikemas', 'dikirim'])
+                ->whereIn('status_transaksi', ['dikonfirmasi', 'siap_diambil'])
                 ->count(),
             'total_spent' => $totalSpent,
         ];
         
         // Upcoming rentals (within next 3 days)
         $upcomingRentals = $user->transaksis()
-            ->whereIn('status_transaksi', ['dikonfirmasi', 'dikemas'])
+            ->where('status_transaksi', 'dikonfirmasi')
             ->whereDate('tanggal_pengambilan', '<=', Carbon::now()->addDays(3))
             ->whereDate('tanggal_pengambilan', '>=', Carbon::now())
             ->with('detailTransaksis.produk')
@@ -75,15 +69,12 @@ class DashboardController extends Controller
         
         // Current balance and points
         $balance = [
-            'deposit' => $user->saldo_deposit,
-            'credit' => $user->saldo_credit,
             'points' => $user->poin_reward,
         ];
         
         return view('customer.dashboard.index', compact(
             'user',
             'recentTransactions',
-            'recentDeposits',
             'cartCount',
             'stats',
             'upcomingRentals',
@@ -92,69 +83,12 @@ class DashboardController extends Controller
         ));
     }
 
-    /**
-     * Display transactions page.
-     */
-    public function transactions(Request $request)
-    {
-        /** @var User $user */
-        $user = Auth::user();
-        
-        $query = $user->transaksis()->with('detailTransaksis.produk', 'paymentMethod');
-        
-        // Filter by status
-        if ($request->filled('status')) {
-            if ($request->status === 'active') {
-                $query->whereIn('status_transaksi', ['dikonfirmasi', 'dikemas', 'dikirim']);
-            } elseif ($request->status === 'completed') {
-                $query->where('status_transaksi', 'selesai');
-            } elseif ($request->status === 'cancelled') {
-                $query->where('status_transaksi', 'dibatalkan');
-            } elseif ($request->status === 'pending') {
-                $query->where('status_pembayaran', 'pending');
-            }
-        }
-        
-        // Filter by date
-        if ($request->filled('date_from')) {
-            $query->whereDate('created_at', '>=', $request->date_from);
-        }
-        
-        if ($request->filled('date_to')) {
-            $query->whereDate('created_at', '<=', $request->date_to);
-        }
-        
-        // Search
-        if ($request->filled('search')) {
-            $search = $request->search;
-            $query->where(function($q) use ($search) {
-                $q->where('kode_transaksi', 'like', "%{$search}%")
-                  ->orWhere('nama_produk', 'like', "%{$search}%")
-                  ->orWhereHas('detailTransaksis', function($q2) use ($search) {
-                      $q2->where('nama_produk', 'like', "%{$search}%");
-                  });
-            });
-        }
-        
-        $transactions = $query->orderBy('created_at', 'desc')->paginate(15);
-        
-        $statuses = [
-            'all' => 'Semua Transaksi',
-            'active' => 'Sedang Disewa',
-            'completed' => 'Selesai',
-            'cancelled' => 'Dibatalkan',
-            'pending' => 'Menunggu Pembayaran',
-        ];
-        
-        return view('customer.dashboard.transactions', compact('transactions', 'statuses'));
-    }
-
     public function getSummary()
     {
         $user = Auth::user();
         $stats = [
             'total_transactions' => $user->transaksis()->count(),
-            'active_rentals' => $user->transaksis()->whereIn('status_transaksi', ['dikonfirmasi', 'dikemas', 'dikirim'])->count(),
+            'active_rentals' => $user->transaksis()->whereIn('status_transaksi', ['dikonfirmasi', 'siap_diambil'])->count(),
             'pending_payments' => $user->transaksis()->where('status_pembayaran', 'pending')->count(),
             'completed' => $user->transaksis()->where('status_transaksi', 'selesai')->count(),
         ];
@@ -166,126 +100,6 @@ class DashboardController extends Controller
         $user = Auth::user();
         $activityLogs = $user->activityLogs()->orderBy('created_at', 'desc')->paginate(20);
         return view('customer.dashboard.activity_logs', compact('activityLogs'));
-    }
-
-    /**
-     * Display transaction detail.
-     */
-    public function transactionDetail($id)
-    {
-        /** @var User $user */
-        $user = Auth::user();
-        
-        $transaction = $user->transaksis()
-            ->with([
-                'detailTransaksis.produk',
-                'paymentMethod',
-                'pengiriman',
-                'ulasan'
-            ])
-            ->findOrFail($id);
-        
-        return view('customer.dashboard.transaction_detail', compact('transaction'));
-    }
-
-    /**
-     * Display deposit transactions.
-     */
-    public function deposits(Request $request)
-    {
-        /** @var User $user */
-        $user = Auth::user();
-        
-        $query = $user->depositTransactions();
-        
-        // Filter by type
-        if ($request->filled('type')) {
-            $query->where('type', $request->type);
-        }
-        
-        // Filter by status
-        if ($request->filled('status')) {
-            $query->where('status', $request->status);
-        }
-        
-        // Filter by date
-        if ($request->filled('date_from')) {
-            $query->whereDate('created_at', '>=', $request->date_from);
-        }
-        
-        if ($request->filled('date_to')) {
-            $query->whereDate('created_at', '<=', $request->date_to);
-        }
-        
-        $deposits = $query->orderBy('created_at', 'desc')->paginate(15);
-        
-        $types = [
-            'all' => 'Semua Tipe',
-            'topup' => 'Top Up',
-            'withdraw' => 'Penarikan',
-            'payment' => 'Pembayaran',
-            'refund' => 'Pengembalian',
-            'penalty' => 'Denda',
-            'reward' => 'Reward',
-        ];
-        
-        $statuses = [
-            'all' => 'Semua Status',
-            'pending' => 'Pending',
-            'success' => 'Sukses',
-            'failed' => 'Gagal',
-            'cancelled' => 'Dibatalkan',
-        ];
-        
-        return view('customer.dashboard.deposits', compact('deposits', 'types', 'statuses'));
-    }
-
-    /**
-     * Display cart page.
-     */
-    public function cart()
-    {
-        /** @var User $user */
-        $user = Auth::user();
-        
-        $cartItems = $user->keranjangs()
-            ->with('produk')
-            ->get();
-        
-        // Calculate totals
-        $subtotal = 0;
-        foreach ($cartItems as $item) {
-            if ($item->produk && $item->produk->harga_per_hari) {
-                $subtotal += $item->produk->harga_per_hari * $item->lama_sewa * $item->jumlah;
-            }
-        }
-        
-        return view('customer.dashboard.cart', compact('cartItems', 'subtotal'));
-    }
-
-    /**
-     * Display reviews page.
-     */
-    public function reviews()
-    {
-        /** @var User $user */
-        $user = Auth::user();
-        
-        $reviews = $user->ulasans()
-            ->with('produk', 'transaksi')
-            ->orderBy('created_at', 'desc')
-            ->paginate(10);
-        
-        // Transactions that can be reviewed
-        $transactionsToReview = $user->transaksis()
-            ->where('status_transaksi', 'selesai')
-            ->whereDoesntHave('ulasan')
-            ->with('detailTransaksis.produk')
-            ->orderBy('completed_at', 'desc')
-            ->limit(5)
-            ->get();
-        
-        return view('customer.dashboard.reviews', compact('reviews', 'transactionsToReview'));
     }
 
     /**
@@ -415,23 +229,6 @@ class DashboardController extends Controller
     }
 
     /**
-     * Download transaction invoice.
-     */
-    public function downloadInvoice($id)
-    {
-        /** @var User $user */
-        $user = Auth::user();
-        
-        $transaction = $user->transaksis()
-            ->with('detailTransaksis.produk', 'paymentMethod')
-            ->findOrFail($id);
-        
-        // In a real application, you would generate PDF invoice
-        // For now, just show the invoice view
-        return view('customer.dashboard.invoice', compact('transaction'));
-    }
-
-    /**
      * Cancel transaction.
      */
     public function cancelTransaction(Request $request, $id)
@@ -465,7 +262,7 @@ class DashboardController extends Controller
             'ip_address' => $request->ip(),
         ]);
         
-        return redirect()->route('customer.dashboard.transactions')
+        return redirect()->route('customer.transactions.index')
             ->with('success', 'Transaksi berhasil dibatalkan.');
     }
 
@@ -479,7 +276,7 @@ class DashboardController extends Controller
     
     $transaction = $user->transaksis()
         ->where('id', $id)
-        ->whereIn('status_transaksi', ['dikonfirmasi', 'dikirim'])
+        ->whereIn('status_transaksi', ['dikonfirmasi', 'siap_diambil'])
         ->firstOrFail();
     
     $request->validate([

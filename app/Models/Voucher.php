@@ -89,11 +89,6 @@ class Voucher extends Model
         return $query->where('type', 'fixed');
     }
 
-    public function scopeShipping($query)
-    {
-        return $query->where('type', 'shipping');
-    }
-
     public function scopeForUser($query, $userId)
     {
         return $query->where(function ($q) use ($userId) {
@@ -126,7 +121,6 @@ class Voucher extends Model
         $types = [
             'percentage' => 'Persentase',
             'fixed' => 'Nominal',
-            'shipping' => 'Gratis Ongkir',
         ];
         return $types[$this->type] ?? $this->type;
     }
@@ -175,13 +169,49 @@ class Voucher extends Model
             case 'fixed':
                 $discount = $this->value;
                 break;
-            case 'shipping':
-                // For shipping vouchers, discount is applied separately
-                $discount = 0;
-                break;
         }
 
-        return $discount;
+        return min($discount, $amount);
+    }
+
+    /**
+     * Konsumsi kuota secara atomik: hanya increment jika masih ada sisa kuota.
+     * Aman dari race condition (dua request bersamaan tidak bisa melebihi kuota).
+     */
+    public function consumeQuota(): bool
+    {
+        return (bool) static::query()
+            ->whereKey($this->getKey())
+            ->where(function ($q) {
+                $q->whereNull('kuota')->orWhereColumn('kuota_terpakai', '<', 'kuota');
+            })
+            ->increment('kuota_terpakai');
+    }
+
+    /**
+     * Kembalikan kuota (dipakai saat transaksi dibatalkan).
+     */
+    public function releaseQuota(): void
+    {
+        static::query()
+            ->whereKey($this->getKey())
+            ->where('kuota_terpakai', '>', 0)
+            ->decrement('kuota_terpakai');
+    }
+
+    /**
+     * Kembalikan kuota berdasarkan kode voucher (jika tercatat pada transaksi/booking).
+     */
+    public static function releaseByCode(?string $kode): void
+    {
+        if (empty($kode)) {
+            return;
+        }
+
+        static::query()
+            ->where('kode_voucher', $kode)
+            ->where('kuota_terpakai', '>', 0)
+            ->decrement('kuota_terpakai');
     }
 
     public function isValidForAmount($amount)

@@ -27,7 +27,7 @@ class Keranjang extends Model
         'jumlah' => 'integer',
     ];
 
-    protected $appends = ['lama_sewa', 'subtotal', 'deposit_amount'];
+    protected $appends = ['lama_sewa', 'subtotal'];
 
     // Relationships
     public function user()
@@ -58,20 +58,9 @@ class Keranjang extends Model
         return 0;
     }
 
-    public function getDepositAmountAttribute()
-    {
-        // Deposit is 50% of subtotal
-        return $this->subtotal * 0.5;
-    }
-
     public function getSubtotalFormattedAttribute()
     {
         return 'Rp ' . number_format($this->subtotal, 0, ',', '.');
-    }
-
-    public function getDepositAmountFormattedAttribute()
-    {
-        return 'Rp ' . number_format($this->deposit_amount, 0, ',', '.');
     }
 
     // Methods

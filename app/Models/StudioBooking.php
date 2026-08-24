@@ -25,6 +25,8 @@ class StudioBooking extends Model
         'admin_fee',
         'grand_total',
         'catatan',
+        'kode_voucher',
+        'diskon_voucher',
         'status',
         'payment_status',
         'midtrans_order_id',
@@ -38,6 +40,9 @@ class StudioBooking extends Model
         'jam_mulai' => 'datetime:H:i',
         'jam_selesai' => 'datetime:H:i',
         'total_harga' => 'decimal:2',
+        'diskon_voucher' => 'decimal:2',
+        'admin_fee' => 'decimal:2',
+        'grand_total' => 'decimal:2',
         'durasi_jam' => 'integer',
         'paid_at' => 'datetime',
     ];
@@ -75,6 +80,16 @@ class StudioBooking extends Model
     public function getTotalHargaFormattedAttribute()
     {
         return 'Rp ' . number_format($this->total_harga, 0, ',', '.');
+    }
+
+    public function getDiskonVoucherFormattedAttribute()
+    {
+        return $this->diskon_voucher > 0 ? 'Rp ' . number_format($this->diskon_voucher, 0, ',', '.') : null;
+    }
+
+    public function getGrandTotalFormattedAttribute()
+    {
+        return 'Rp ' . number_format($this->grand_total, 0, ',', '.');
     }
 
     public function getStatusLabelAttribute()

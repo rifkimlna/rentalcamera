@@ -36,7 +36,7 @@ class VoucherUsage extends Model
 
     public function transaksi()
     {
-        return $this->belongsTo(Transaksi::class, 'transaksi_id');
+        return $this->belongsTo(Transaksis::class, 'transaksi_id');
     }
 
     // Methods

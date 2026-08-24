@@ -18,12 +18,16 @@ class Studio extends Model
         'deskripsi',
         'fasilitas',
         'harga_per_jam',
+        'rating',
+        'jumlah_ulasan',
         'gambar_utama',
         'status',
     ];
 
     protected $casts = [
         'harga_per_jam' => 'decimal:2',
+        'rating' => 'decimal:1',
+        'jumlah_ulasan' => 'integer',
         'fasilitas' => 'array',
     ];
 
@@ -35,6 +39,23 @@ class Studio extends Model
     public function bookings()
     {
         return $this->hasMany(StudioBooking::class, 'studio_id');
+    }
+
+    public function ulasan()
+    {
+        return $this->hasMany(Ulasan::class, 'studio_id');
+    }
+
+    public function refreshRating()
+    {
+        $approvedReviews = $this->ulasan()->where('status', 'approved');
+        $count = $approvedReviews->count();
+        $avgRating = $count > 0 ? $approvedReviews->avg('rating') : 0;
+
+        $this->update([
+            'rating' => round($avgRating, 1),
+            'jumlah_ulasan' => $count,
+        ]);
     }
 
     public function paketActive()

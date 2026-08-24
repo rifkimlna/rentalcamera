@@ -43,11 +43,6 @@ class PaymentMethod extends Model
         return $this->hasMany(Transaksis::class, 'payment_method_id');
     }
 
-    public function depositTransactions()
-    {
-        return $this->hasMany(DepositTransaction::class, 'payment_method_id');
-    }
-
     // Scopes
     public function scopeActive($query)
     {
@@ -89,11 +84,6 @@ class PaymentMethod extends Model
         return $query->where('type', 'cod');
     }
 
-    public function scopeDeposit($query)
-    {
-        return $query->where('type', 'deposit');
-    }
-
     // Methods
     public function getTypeLabelAttribute()
     {
@@ -104,7 +94,6 @@ class PaymentMethod extends Model
             'credit_card' => 'Kartu Kredit',
             'cstore' => 'Convenience Store',
             'cod' => 'Cash on Delivery',
-            'deposit' => 'Deposit',
         ];
         return $types[$this->type] ?? $this->type;
     }

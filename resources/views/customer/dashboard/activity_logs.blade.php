@@ -1,6 +1,6 @@
 @extends('layouts.customer')
 
-@section('title', 'Aktivitas - Sewa Kamera Pro')
+@section('title', 'Aktivitas - Stekpro Multimedia & Broadcast')
 
 @section('page-title', 'Aktivitas')
 
@@ -23,13 +23,13 @@
 
         @if($currentDate !== $logDate)
             @php $currentDate = $logDate; @endphp
-            <div class="text-xs font-medium text-base-content/40 uppercase tracking-wider pt-2 pb-1">
+            <div class="text-xs font-medium text-[#86868b] uppercase tracking-wider pt-2 pb-1">
                 {{ $log->created_at->isToday() ? 'Hari Ini' : ($log->created_at->isYesterday() ? 'Kemarin' : $log->created_at->format('d F Y')) }}
             </div>
         @endif
 
-        <div class="card bg-base-100 border border-base-300">
-            <div class="card-body p-4">
+        <div class="card-apple-static">
+            <div class="p-4">
                 <div class="flex items-start gap-3">
                     @php
                         $typeIcons = [
@@ -44,18 +44,18 @@
                         ];
                         $defaultIcon = '<svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>';
                     @endphp
-                    <div class="activity-icon bg-base-200 text-base-content/70">
+                    <div class="activity-icon bg-[#f5f5f7] text-[#6e6e73]">
                         {!! $typeIcons[$log->type] ?? $defaultIcon !!}
                     </div>
                     <div class="flex-1 min-w-0">
                         <div class="flex items-start justify-between gap-2">
                             <p class="text-sm">{{ $log->description }}</p>
-                            <span class="text-xs text-base-content/40 whitespace-nowrap">{{ $log->created_at->format('H:i') }}</span>
+                            <span class="text-xs text-[#86868b] whitespace-nowrap">{{ $log->created_at->format('H:i') }}</span>
                         </div>
                         <div class="flex items-center gap-2 mt-1">
-                            <span class="badge badge-outline badge-xs text-[10px]">{{ $log->type_label }}</span>
+                            <span class="badge-apple !text-[10px] !px-2 !py-0.5 border border-[#e5e5e7]">{{ $log->type_label }}</span>
                             @if($log->ip_address)
-                            <span class="text-[10px] text-base-content/30">{{ $log->ip_address }}</span>
+                            <span class="text-[10px] text-[#86868b]">{{ $log->ip_address }}</span>
                             @endif
                         </div>
                     </div>
@@ -63,12 +63,12 @@
             </div>
         </div>
     @empty
-    <div class="card bg-base-100 border border-base-300">
-        <div class="card-body p-8 text-center">
-            <svg xmlns="http://www.w3.org/2000/svg" class="h-10 w-10 mx-auto mb-3 text-base-content/40" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+    <div class="card-apple-static">
+        <div class="p-8 text-center">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-10 w-10 mx-auto mb-3 text-[#86868b]" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
                 <path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
             </svg>
-            <p class="text-sm text-base-content/60">Belum ada aktivitas</p>
+            <p class="text-sm text-[#6e6e73]">Belum ada aktivitas</p>
         </div>
     </div>
     @endforelse

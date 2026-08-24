@@ -7,6 +7,11 @@ return new class extends Migration
 {
     public function up(): void
     {
+        // Trigger & procedure memakai sintaks khusus MySQL
+        if (DB::connection()->getDriverName() !== 'mysql') {
+            return;
+        }
+
         DB::unprepared("DROP TRIGGER IF EXISTS before_transaction_insert");
         DB::unprepared("
         CREATE TRIGGER before_transaction_insert
@@ -56,18 +61,6 @@ return new class extends Migration
         END;
         ");
 
-        DB::unprepared("DROP TRIGGER IF EXISTS before_deposit_transaction_insert");
-        DB::unprepared("
-        CREATE TRIGGER before_deposit_transaction_insert
-        BEFORE INSERT ON deposit_transactions
-        FOR EACH ROW
-        BEGIN
-            IF NEW.kode_transaksi IS NULL THEN
-                SET NEW.kode_transaksi = CONCAT('DEP', DATE_FORMAT(NOW(), '%Y%m%d'), LPAD(FLOOR(RAND() * 10000), 4, '0'));
-            END IF;
-        END;
-        ");
-
         DB::unprepared("DROP TRIGGER IF EXISTS after_review_approved");
         DB::unprepared("
         CREATE TRIGGER after_review_approved
@@ -98,7 +91,6 @@ return new class extends Migration
     {
         DB::unprepared("DROP TRIGGER IF EXISTS before_transaction_insert");
         DB::unprepared("DROP TRIGGER IF EXISTS after_transaction_confirmed");
-        DB::unprepared("DROP TRIGGER IF EXISTS before_deposit_transaction_insert");
         DB::unprepared("DROP TRIGGER IF EXISTS after_review_approved");
     }
 };

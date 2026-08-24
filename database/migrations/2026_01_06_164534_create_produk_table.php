@@ -33,7 +33,7 @@ return new class extends Migration
             $table->integer('jumlah_dipesan')->default(0);
             $table->string('gambar_utama', 255)->nullable();
             $table->json('gambar_tambahan')->nullable();
-            $table->enum('status', ['available', 'unavailable', 'maintenance'])->default('available');
+            $table->enum('status', ['available', 'unavailable'])->default('available');
             $table->boolean('is_featured')->default(false);
             $table->boolean('is_recommended')->default(false);
             $table->decimal('berat', 6, 2)->nullable()->comment('Dalam gram');

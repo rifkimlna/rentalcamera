@@ -21,14 +21,13 @@ class DetailTransaksis extends Model
         'jumlah',
         'lama_sewa',
         'subtotal',
-        'deposit_amount',
         'catatan',
     ];
 
     protected $casts = [
         'harga_per_hari' => 'decimal:2',
         'subtotal' => 'decimal:2',
-        'deposit_amount' => 'decimal:2',
+
         'jumlah' => 'integer',
         'lama_sewa' => 'integer',
     ];
@@ -50,11 +49,6 @@ class DetailTransaksis extends Model
         return 'Rp ' . number_format($this->subtotal, 0, ',', '.');
     }
 
-    public function getDepositAmountFormattedAttribute()
-    {
-        return 'Rp ' . number_format($this->deposit_amount, 0, ',', '.');
-    }
-
     public function getHargaPerHariFormattedAttribute()
     {
         return 'Rp ' . number_format($this->harga_per_hari, 0, ',', '.');
@@ -72,6 +66,6 @@ class DetailTransaksis extends Model
 
     public function hasReview()
     {
-        return $this->transaksi && $this->transaksi->ulasan && $this->transaksi->ulasan->produk_id == $this->produk_id;
+        return $this->transaksi && $this->transaksi->reviews()->where('produk_id', $this->produk_id)->exists();
     }
 }

@@ -69,13 +69,13 @@
 </head>
 <body>
     <div class="header">
-        <h1>Sewa Kamera Pro</h1>
+        <h1>Stekpro Multimedia & Broadcast</h1>
         <p>Konfirmasi Transaksi</p>
     </div>
     
     <div class="content">
         <h2>Halo, {{ $transaction->nama_customer }}!</h2>
-        <p>Terima kasih telah melakukan pemesanan di Sewa Kamera Pro. Berikut adalah detail transaksi Anda:</p>
+        <p>Terima kasih telah melakukan pemesanan di Stekpro Multimedia & Broadcast. Berikut adalah detail transaksi Anda:</p>
         
         <div class="transaction-details">
             <h3>Detail Transaksi</h3>
@@ -140,14 +140,6 @@
                     </tr>
                     <tr>
                         <td colspan="2" style="padding: 10px; text-align: right;">
-                            <strong>Biaya Pengiriman:</strong>
-                        </td>
-                        <td style="padding: 10px; text-align: right;">
-                            Rp {{ number_format($transaction->biaya_pengiriman, 0, ',', '.') }}
-                        </td>
-                    </tr>
-                    <tr>
-                        <td colspan="2" style="padding: 10px; text-align: right;">
                             <strong>Total:</strong>
                         </td>
                         <td style="padding: 10px; text-align: right; font-size: 16px; font-weight: bold; color: #059669;">
@@ -174,7 +166,7 @@
         <p>
             <strong>Informasi Pengambilan:</strong><br>
             Tanggal Pengambilan: {{ \Carbon\Carbon::parse($transaction->tanggal_pengambilan)->format('d F Y H:i') }}<br>
-            Lokasi: {{ $transaction->alamat_pengiriman ?? 'Ambil di toko' }}
+            Lokasi: Ambil di toko
         </p>
         
         <p>
@@ -186,8 +178,8 @@
     </div>
     
     <div class="footer">
-        <p>&copy; {{ date('Y') }} Sewa Kamera Pro. All rights reserved.</p>
-        <p>Jl. Contoh No. 123, Jakarta, Indonesia</p>
+        <p>&copy; {{ date('Y') }} Stekpro Multimedia & Broadcast. All rights reserved.</p>
+        <p>Jl. Contoh No. 123, Sukabumi, Indonesia</p>
     </div>
 </body>
 </html>

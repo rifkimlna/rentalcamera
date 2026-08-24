@@ -15,7 +15,6 @@
         "axios": "^1.11.0",
         "chart.js": "^4.5.1",
         "concurrently": "^9.0.1",
-        "daisyui": "^5.5.14",
         "laravel-vite-plugin": "^2.0.0",
         "postcss": "^8.5.6",
         "sweetalert2": "^11.26.17",
@@ -23,9 +22,7 @@
         "vite": "^7.0.7"
     },
     "dependencies": {
-        "jquery": "^4.0.0",
         "laravel-echo": "^2.3.7",
-        "pusher-js": "^8.5.0",
-        "toastr": "^2.1.4"
+        "pusher-js": "^8.5.0"
     }
 }

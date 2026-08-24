@@ -25,8 +25,13 @@ return new class extends Migration
             $table->date('tanggal_sewa');
             $table->date('tanggal_kembali');
 
+            // Kolom generated: ekspresi disesuaikan driver database
+            $lamaSewaSql = Schema::getConnection()->getDriverName() === 'sqlite'
+                ? "CAST(julianday(tanggal_kembali) - julianday(tanggal_sewa) + 1 AS INTEGER)"
+                : "DATEDIFF(tanggal_kembali, tanggal_sewa) + 1";
+
             $table->integer('lama_sewa')
-                ->storedAs("DATEDIFF(tanggal_kembali, tanggal_sewa) + 1");
+                ->storedAs($lamaSewaSql);
 
             $table->timestamps();
 

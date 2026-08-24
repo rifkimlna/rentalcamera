@@ -7,6 +7,11 @@ return new class extends Migration
 {
     public function up(): void
     {
+        // View berisi sintaks khusus MySQL (CURDATE, GROUP_CONCAT ... SEPARATOR)
+        if (DB::connection()->getDriverName() !== 'mysql') {
+            return;
+        }
+
         DB::unprepared("
             CREATE OR REPLACE VIEW v_dashboard_summary AS
             SELECT 
@@ -15,9 +20,8 @@ return new class extends Migration
                 (SELECT COUNT(*) FROM transaksis WHERE DATE(created_at) = CURDATE()) AS today_transactions,
                 (SELECT COALESCE(SUM(grand_total), 0) FROM transaksis WHERE DATE(created_at) = CURDATE() AND status_pembayaran = 'settlement') AS today_revenue,
                 (SELECT COUNT(*) FROM transaksis WHERE status_pembayaran = 'pending') AS pending_payments,
-                (SELECT COUNT(*) FROM transaksis WHERE status_transaksi = 'dikirim') AS on_delivery,
+
                 (SELECT COUNT(*) FROM produk WHERE stok_tersedia = 0) AS out_of_stock,
-                (SELECT COUNT(*) FROM maintenance WHERE status != 'completed') AS active_maintenance
         ");
 
         DB::unprepared("

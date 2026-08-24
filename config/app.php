@@ -123,4 +123,15 @@ return [
         'store' => env('APP_MAINTENANCE_STORE', 'database'),
     ],
 
+    /*
+    |--------------------------------------------------------------------------
+    | WhatsApp Phone Number
+    |--------------------------------------------------------------------------
+    |
+    | Default WhatsApp number for customer inquiries.
+    |
+    */
+
+    'wa_phone' => env('WA_PHONE', '6281234567890'),
+
 ];

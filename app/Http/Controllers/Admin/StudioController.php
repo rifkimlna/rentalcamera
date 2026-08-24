@@ -214,8 +214,10 @@ class StudioController extends Controller
 
         if ($request->filled('search')) {
             $search = $request->search;
-            $query->whereHas('user', fn($q) => $q->where('nama', 'like', "%{$search}%"))
-                  ->orWhereHas('studio', fn($q) => $q->where('nama_studio', 'like', "%{$search}%"));
+            $query->where(function ($q) use ($search) {
+                $q->whereHas('user', fn($qq) => $qq->where('nama', 'like', "%{$search}%"))
+                  ->orWhereHas('studio', fn($qq) => $qq->where('nama_studio', 'like', "%{$search}%"));
+            });
         }
 
         if ($request->filled('status')) {

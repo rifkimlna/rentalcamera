@@ -5,7 +5,6 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\User;
 use App\Models\Transaksis; // GANTI: dari Transaksi ke Transaksis
-use App\Models\DepositTransaction;
 use App\Models\ActivityLog;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
@@ -51,7 +50,6 @@ class UserController extends Controller
             'customer' => 'Customer',
             'admin' => 'Admin',
             'superadmin' => 'Super Admin',
-            'driver' => 'Driver',
         ];
         
         $statuses = [
@@ -74,10 +72,7 @@ class UserController extends Controller
             'transaksis' => function($query) {
                 $query->orderBy('created_at', 'desc')->limit(10);
             }, 
-            'depositTransactions' => function($query) {
-                $query->orderBy('created_at', 'desc')->limit(10);
-            },
-            'ulasan' => function($query) {
+            'ulasans' => function($query) {
                 $query->orderBy('created_at', 'desc')->limit(10);
             }
         ])->findOrFail($id);
@@ -93,7 +88,6 @@ class UserController extends Controller
         $roles = [
             'customer' => 'Customer',
             'admin' => 'Admin',
-            'driver' => 'Driver',
         ];
         
         $statuses = [
@@ -116,9 +110,8 @@ class UserController extends Controller
             'email' => 'required|email|unique:users,email',
             'password' => 'required|min:6|confirmed',
             'telepon' => 'required|string|max:20',
-            'role' => 'required|in:customer,admin,driver',
+            'role' => 'required|in:customer,admin',
             'status' => 'required|in:active,inactive,suspended,pending_verification',
-            'saldo_deposit' => 'nullable|numeric|min:0',
             'poin_reward' => 'nullable|integer|min:0',
             'alamat' => 'nullable|string',
             'kota' => 'nullable|string|max:100',
@@ -127,7 +120,6 @@ class UserController extends Controller
             'tanggal_lahir' => 'nullable|date',
             'jenis_kelamin' => 'nullable|in:L,P',
             'foto_profil' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
-            'ktp_image' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
         ]);
         
         $userData = $request->only([
@@ -137,8 +129,6 @@ class UserController extends Controller
         ]);
         
         $userData['password'] = Hash::make($request->password);
-        $userData['saldo_deposit'] = $request->saldo_deposit ?? 0;
-        $userData['saldo_credit'] = 0;
         $userData['poin_reward'] = $request->poin_reward ?? 0;
         $userData['email_verified_at'] = $request->status === 'active' ? now() : null;
         $userData['uuid'] = Str::uuid();
@@ -148,11 +138,6 @@ class UserController extends Controller
         // Handle foto profil upload
         if ($request->hasFile('foto_profil')) {
             $this->uploadUserImage($user, $request->file('foto_profil'), 'foto_profil');
-        }
-        
-        // Handle KTP upload
-        if ($request->hasFile('ktp_image')) {
-            $this->uploadUserImage($user, $request->file('ktp_image'), 'ktp_image');
         }
         
         // Log activity
@@ -177,7 +162,6 @@ class UserController extends Controller
         $roles = [
             'customer' => 'Customer',
             'admin' => 'Admin',
-            'driver' => 'Driver',
         ];
         
         $statuses = [
@@ -201,9 +185,8 @@ class UserController extends Controller
             'nama' => 'required|string|max:100',
             'email' => 'required|email|unique:users,email,' . $user->id,
             'telepon' => 'required|string|max:20',
-            'role' => 'required|in:customer,admin,driver',
+            'role' => 'required|in:customer,admin',
             'status' => 'required|in:active,inactive,suspended,pending_verification',
-            'saldo_deposit' => 'nullable|numeric|min:0',
             'poin_reward' => 'nullable|integer|min:0',
             'alamat' => 'nullable|string',
             'kota' => 'nullable|string|max:100',
@@ -212,7 +195,6 @@ class UserController extends Controller
             'tanggal_lahir' => 'nullable|date',
             'jenis_kelamin' => 'nullable|in:L,P',
             'foto_profil' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
-            'ktp_image' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
             'password' => 'nullable|min:6|confirmed',
         ]);
         
@@ -222,7 +204,6 @@ class UserController extends Controller
             'tanggal_lahir', 'jenis_kelamin'
         ]);
         
-        $userData['saldo_deposit'] = $request->saldo_deposit ?? $user->saldo_deposit;
         $userData['poin_reward'] = $request->poin_reward ?? $user->poin_reward;
         
         // Update password if provided
@@ -242,13 +223,6 @@ class UserController extends Controller
         // Handle foto profil upload
         if ($request->hasFile('foto_profil')) {
             $this->uploadUserImage($user, $request->file('foto_profil'), 'foto_profil');
-        }
-        
-        // Handle KTP upload
-        if ($request->hasFile('ktp_image')) {
-            $this->uploadUserImage($user, $request->file('ktp_image'), 'ktp_image');
-            // Reset KTP verification when new KTP uploaded
-            $user->update(['ktp_verified_at' => null]);
         }
         
         // Log activity
@@ -285,10 +259,6 @@ class UserController extends Controller
         // Delete user images
         if ($user->foto_profil && Storage::disk('public')->exists($user->foto_profil)) {
             Storage::disk('public')->delete($user->foto_profil);
-        }
-        
-        if ($user->ktp_image && Storage::disk('public')->exists($user->ktp_image)) {
-            Storage::disk('public')->delete($user->ktp_image);
         }
         
         // Log activity before deletion
@@ -357,7 +327,7 @@ class UserController extends Controller
         }
         
         $request->validate([
-            'role' => 'required|in:customer,admin,superadmin,driver'
+            'role' => 'required|in:customer,admin,superadmin'
         ]);
         
         $oldRole = $user->role;
@@ -378,95 +348,54 @@ class UserController extends Controller
     }
 
     /**
-     * Verify user KTP.
+     * Activate user account.
      */
-    public function verifyKTP(Request $request, $id)
+    public function activate($id)
     {
         $user = User::findOrFail($id);
-        
-        $request->validate([
-            'verified' => 'required|boolean'
+
+        $user->update([
+            'status' => 'active',
+            'email_verified_at' => $user->email_verified_at ?? now(),
         ]);
-        
-        if ($request->verified) {
-            if (!$user->ktp_image) {
-                return redirect()->back()
-                    ->with('error', 'User belum mengupload KTP.');
-            }
-            
-            $user->update(['ktp_verified_at' => now()]);
-            $message = 'KTP berhasil diverifikasi.';
-        } else {
-            $user->update(['ktp_verified_at' => null]);
-            $message = 'Verifikasi KTP dibatalkan.';
-        }
-        
-        // Log activity
+
         ActivityLog::create([
             'user_id' => Auth::id(),
             'type' => 'user',
-            'description' => "{$message} untuk user {$user->nama}",
-            'ip_address' => $request->ip(),
+            'description' => "Mengaktifkan akun user: {$user->nama}",
+            'ip_address' => request()->ip(),
         ]);
-        
+
         return redirect()->back()
-            ->with('success', $message);
+            ->with('success', 'Akun user berhasil diaktifkan.');
     }
 
     /**
-     * Update user deposit.
+     * Suspend user account.
      */
-    public function updateDeposit(Request $request, $id)
+    public function suspend($id)
     {
         $user = User::findOrFail($id);
-        
-        $request->validate([
-            'type' => 'required|in:topup,withdraw,penalty,reward',
-            'amount' => 'required|numeric|min:1',
-            'description' => 'required|string|max:255',
-        ]);
-        
-        $previousBalance = $user->saldo_deposit;
-        
-        switch ($request->type) {
-            case 'topup':
-            case 'reward':
-                $user->increment('saldo_deposit', $request->amount);
-                break;
-            case 'withdraw':
-            case 'penalty':
-                if ($user->saldo_deposit < $request->amount) {
-                    return redirect()->back()
-                        ->with('error', 'Saldo deposit tidak mencukupi.');
-                }
-                $user->decrement('saldo_deposit', $request->amount);
-                break;
+
+        if ($user->role === 'superadmin') {
+            return redirect()->back()
+                ->with('error', 'Tidak dapat menangguhkan super admin.');
         }
-        
-        $currentBalance = $user->refresh()->saldo_deposit;
-        
-        // Create deposit transaction record
-        DepositTransaction::create([
-            'user_id' => $user->id,
-            'kode_transaksi' => 'ADM' . date('YmdHis') . rand(1000, 9999),
-            'type' => $request->type,
-            'amount' => $request->amount,
-            'previous_balance' => $previousBalance,
-            'current_balance' => $currentBalance,
-            'status' => 'success',
-            'description' => $request->description . ' (Admin)',
+
+        $user->update([
+            'status' => 'suspended',
+            'email_verified_at' => null,
         ]);
-        
-        // Log activity
+
         ActivityLog::create([
             'user_id' => Auth::id(),
-            'type' => 'deposit',
-            'description' => "{$request->type} deposit untuk user {$user->nama}: Rp " . number_format($request->amount, 0, ',', '.'),
-            'ip_address' => $request->ip(),
+            'type' => 'user',
+            'description' => "Menangguhkan akun user: {$user->nama}",
+            'ip_address' => request()->ip(),
         ]);
-        
+
         return redirect()->back()
-            ->with('success', 'Deposit berhasil diperbarui.');
+            ->with('success', 'Akun user berhasil ditangguhkan.');
     }
 
     /**
@@ -507,7 +436,7 @@ class UserController extends Controller
     }
 
     /**
-     * Upload user image (foto_profil or ktp_image).
+     * Upload user profile image (foto_profil).
      */
     private function uploadUserImage(User $user, $file, string $field)
     {

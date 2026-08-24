@@ -271,7 +271,7 @@ class ReportController extends Controller
             ? Carbon::parse($request->end_date)->endOfDay()
             : Carbon::now()->endOfDay();
         
-        $users = User::withCount(['transactions' => function($query) use ($startDate, $endDate) {
+        $users = User::withCount(['transaksis' => function($query) use ($startDate, $endDate) {
                 $query->whereBetween('created_at', [$startDate, $endDate])
                     ->where('status_pembayaran', 'settlement');
             }])
@@ -436,9 +436,7 @@ class ReportController extends Controller
             'menunggu_pembayaran' => 'Menunggu Pembayaran',
             'diproses' => 'Diproses',
             'dikonfirmasi' => 'Dikonfirmasi',
-            'dikemas' => 'Dikemas',
-            'dikirim' => 'Dikirim',
-            'dalam_perjalanan' => 'Dalam Perjalanan',
+            'siap_diambil' => 'Siap Diambil',
             'selesai' => 'Selesai',
             'dibatalkan' => 'Dibatalkan',
             'ditolak' => 'Ditolak',
@@ -492,7 +490,6 @@ class ReportController extends Controller
             'available_products' => Produk::where('status', 'available')
                 ->where('stok_tersedia', '>', 0)
                 ->count(),
-            'maintenance_products' => Produk::where('status', 'maintenance')->count(),
         ];
         
         return response()->json([

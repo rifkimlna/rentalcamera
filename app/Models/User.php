@@ -5,19 +5,19 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
+use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Laravel\Sanctum\HasApiTokens;
 
 
 // Import models
 use App\Models\Transaksis;
-use App\Models\DepositTransaction;
 use App\Models\Keranjang;
 use App\Models\Ulasan;
 use App\Models\Notification;
 use App\Models\ActivityLog;
 use App\Models\VoucherUsage;
 
-class User extends Authenticatable 
+class User extends Authenticatable implements MustVerifyEmail
 {
     use HasApiTokens, HasFactory, Notifiable;
 
@@ -56,11 +56,9 @@ class User extends Authenticatable
         'tanggal_lahir',
         'jenis_kelamin',
         'foto_profil',
-        'ktp_image',
         'role',
         'status',
-        'saldo_deposit',
-        'saldo_credit',
+
         'poin_reward',
     ];
 
@@ -82,21 +80,15 @@ class User extends Authenticatable
     protected $casts = [
         'email_verified_at' => 'datetime',
         'telepon_verified_at' => 'datetime',
-        'ktp_verified_at' => 'datetime',
+        'phone_otp_expires_at' => 'datetime',
         'last_login_at' => 'datetime',
         'tanggal_lahir' => 'date',
-        'saldo_deposit' => 'decimal:2',
-        'saldo_credit' => 'decimal:2',
+
     ];
 
     public function transaksis()
     {
         return $this->hasMany(Transaksis::class, 'user_id');
-    }
-
-    public function depositTransactions()
-    {
-        return $this->hasMany(DepositTransaction::class, 'user_id');
     }
 
     public function keranjangs()

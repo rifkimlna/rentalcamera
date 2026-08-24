@@ -20,26 +20,23 @@ class CartController extends Controller
         
         // Calculate totals
         $subtotal = 0;
-        $depositTotal = 0;
         
         foreach ($cartItems as $item) {
             if ($item->produk) {
                 $itemPrice = $item->produk->harga_per_hari * $item->lama_sewa * $item->jumlah;
-                $itemDeposit = $item->produk->harga_per_hari * 2 * $item->jumlah;
                 $subtotal += $itemPrice;
-                $depositTotal += $itemDeposit;
             }
         }
         
-        return view('customer.cart.index', compact('cartItems', 'subtotal', 'depositTotal'));
+        return view('customer.cart.index', compact('cartItems', 'subtotal'));
     }
     
     public function add(Request $request)
     {
         $request->validate([
             'product_id' => 'required|exists:produk,id',
-            'tanggal_sewa' => 'nullable|date|after_or_equal:today',
-            'tanggal_kembali' => 'nullable|date|after:tanggal_sewa',
+            'tanggal_sewa' => 'required|date|after_or_equal:today',
+            'tanggal_kembali' => 'required|date|after:tanggal_sewa',
             'jumlah' => 'required|integer|min:1',
         ]);
         
@@ -101,9 +98,10 @@ class CartController extends Controller
     {
         $request->validate([
             'product_id' => 'required|exists:produk,id',
-            'tanggal_sewa' => 'nullable|date|after_or_equal:today',
-            'tanggal_kembali' => 'nullable|date|after:tanggal_sewa',
+            'tanggal_sewa' => 'required|date|after_or_equal:today',
+            'tanggal_kembali' => 'required|date|after:tanggal_sewa',
             'jumlah' => 'required|integer|min:1',
+            'jam_mulai' => 'nullable|date_format:H:i',
         ]);
 
         $product = Produk::findOrFail($request->product_id);
@@ -129,6 +127,7 @@ class CartController extends Controller
             return response()->json(['success' => false, 'message' => 'Maksimum sewa ' . $product->maximum_sewa . ' hari.'], 400);
         }
 
+        session()->forget(['direct_studio', 'direct_layanan']);
         session(['direct_rent' => [
             'product_id' => $product->id,
             'nama_produk' => $product->nama_produk,
@@ -137,6 +136,7 @@ class CartController extends Controller
             'brand_nama' => $product->brand->nama_brand ?? null,
             'tanggal_sewa' => $request->tanggal_sewa,
             'tanggal_kembali' => $request->tanggal_kembali,
+            'jam_mulai' => $request->jam_mulai ?? '08:00',
             'jumlah' => $request->jumlah,
             'lama_sewa' => $lamaSewa,
         ]]);
@@ -241,15 +241,12 @@ class CartController extends Controller
             ->get();
         
         $subtotal = 0;
-        $depositTotal = 0;
         $itemsCount = 0;
         
         foreach ($cartItems as $item) {
             if ($item->produk) {
                 $itemPrice = $item->produk->harga_per_hari * $item->lama_sewa * $item->jumlah;
-                $itemDeposit = $item->produk->harga_per_hari * 2 * $item->jumlah;
                 $subtotal += $itemPrice;
-                $depositTotal += $itemDeposit;
                 $itemsCount += $item->jumlah;
             }
         }
@@ -259,8 +256,6 @@ class CartController extends Controller
             'data' => [
                 'items_count' => $itemsCount,
                 'subtotal' => $subtotal,
-                'deposit_total' => $depositTotal,
-                'total' => $subtotal + $depositTotal
             ]
         ]);
     }

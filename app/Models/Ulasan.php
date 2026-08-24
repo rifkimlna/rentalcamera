@@ -16,6 +16,8 @@ class Ulasan extends Model
         'transaksi_id',
         'user_id',
         'produk_id',
+        'studio_id',
+        'layanan_id',
         'rating',
         'judul',
         'komentar',
@@ -45,6 +47,16 @@ class Ulasan extends Model
     public function produk()
     {
         return $this->belongsTo(Produk::class, 'produk_id');
+    }
+
+    public function studio()
+    {
+        return $this->belongsTo(Studio::class, 'studio_id');
+    }
+
+    public function layanan()
+    {
+        return $this->belongsTo(Layanan::class, 'layanan_id');
     }
 
     // Scopes
@@ -117,8 +129,13 @@ class Ulasan extends Model
         $this->status = 'approved';
         $this->save();
 
-        // Update product rating
-        $this->produk->refreshRating();
+        if ($this->produk) {
+            $this->produk->refreshRating();
+        } elseif ($this->studio) {
+            $this->studio->refreshRating();
+        } elseif ($this->layanan) {
+            $this->layanan->refreshRating();
+        }
     }
 
     public function reject()
@@ -141,8 +158,13 @@ class Ulasan extends Model
 
         static::updated(function ($ulasan) {
             if ($ulasan->isDirty('status') && $ulasan->status === 'approved') {
-                // Update product rating when review is approved
-                $ulasan->produk->refreshRating();
+                if ($ulasan->produk) {
+                    $ulasan->produk->refreshRating();
+                } elseif ($ulasan->studio) {
+                    $ulasan->studio->refreshRating();
+                } elseif ($ulasan->layanan) {
+                    $ulasan->layanan->refreshRating();
+                }
             }
         });
     }

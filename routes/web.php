@@ -7,7 +7,6 @@ use App\Http\Controllers\Admin\DashboardController as AdminDashboardController;
 use App\Http\Controllers\Admin\ProductController;
 use App\Http\Controllers\Admin\TransactionController;
 use App\Http\Controllers\Admin\UserController;
-use App\Http\Controllers\Admin\MaintenanceController;
 use App\Http\Controllers\Admin\ReportController;
 use App\Http\Controllers\SocialAuthController;
 use App\Http\Controllers\Customer\DashboardController as CustomerDashboardController;
@@ -18,6 +17,9 @@ use App\Http\Controllers\Customer\TransactionController as CustomerTransactionCo
 use App\Http\Controllers\Customer\ReviewController;
 use App\Http\Controllers\Admin\StudioController as AdminStudioController;
 use App\Http\Controllers\Customer\StudioController as CustomerStudioController;
+use App\Http\Controllers\Admin\LayananController as AdminLayananController;
+use App\Http\Controllers\Customer\LayananController as CustomerLayananController;
+use App\Http\Controllers\Admin\VoucherController;
 use Illuminate\Support\Facades\Auth;
 
 /*
@@ -80,10 +82,13 @@ Route::middleware('auth')->group(function () {
     Route::get('/profile', [AuthController::class, 'profile'])->name('profile');
     Route::put('/profile', [AuthController::class, 'updateProfile'])->name('profile.update');
     Route::put('/profile/password', [AuthController::class, 'updatePassword'])->name('profile.password');
+    Route::post('/profile/phone/send-otp', [AuthController::class, 'sendPhoneOtp'])->name('profile.phone.send-otp');
+    Route::post('/profile/phone/verify', [AuthController::class, 'verifyPhoneOtp'])->name('profile.phone.verify');
     
     // Notifications
     Route::get('/notifications', [AuthController::class, 'notifications'])->name('notifications');
     Route::post('/notifications/mark-as-read', [AuthController::class, 'markNotificationsAsRead'])->name('notifications.mark-read');
+    Route::post('/notifications/{id}/mark-read', [AuthController::class, 'markNotificationAsRead'])->name('notifications.mark-single-read');
     
     // Dashboard based on role - FIXED: Gunakan helper auth()
     Route::get('/dashboard', function () {
@@ -106,18 +111,13 @@ Route::middleware('auth')->group(function () {
     Route::prefix('admin')->name('admin.')->middleware('admin')->group(function () {
         // Dashboard
         Route::get('/dashboard', [AdminDashboardController::class, 'index'])->name('dashboard');
-        Route::get('/dashboard/summary', [AdminDashboardController::class, 'getSummary'])->name('dashboard.summary');
-        Route::get('/dashboard/chart-data', [AdminDashboardController::class, 'getChartData'])->name('dashboard.chart-data');
         
         // Products Management
         Route::resource('products', ProductController::class);
-        Route::post('products/{product}/restore', [ProductController::class, 'restore'])->name('products.restore');
         Route::post('products/{product}/update-status', [ProductController::class, 'updateStatus'])->name('products.update-status');
         Route::post('products/{product}/update-stock', [ProductController::class, 'updateStock'])->name('products.update-stock');
-        Route::get('products/{product}/maintenance', [ProductController::class, 'maintenance'])->name('products.maintenance');
-        Route::post('products/{product}/maintenance', [ProductController::class, 'storeMaintenance'])->name('products.store-maintenance');
-   
-Route::post('products/{product}/delete-image', [ProductController::class, 'deleteImage'])->name('admin.products.delete-image');
+  
+        Route::post('products/{product}/delete-image', [ProductController::class, 'deleteImage'])->name('products.delete-image');
         
         // Brands Management
         Route::get('brands', [ProductController::class, 'brands'])->name('brands.index');
@@ -134,29 +134,19 @@ Route::post('products/{product}/delete-image', [ProductController::class, 'delet
         // Transactions routes
 Route::get('transactions', [TransactionController::class, 'index'])->name('transactions.index');
 Route::get('transactions/create/manual', [TransactionController::class, 'createManual'])->name('transactions.create.manual');
+Route::post('transactions/store-manual', [TransactionController::class, 'storeManual'])->name('transactions.store.manual');
+Route::get('transactions/export', [TransactionController::class, 'export'])->name('transactions.export');
 
 Route::get('transactions/{transaction}', [TransactionController::class, 'show'])->name('transactions.show');
 Route::post('transactions/{transaction}/update-status', [TransactionController::class, 'updateStatus'])->name('transactions.update-status');
 Route::get('transactions/{transaction}/print', [TransactionController::class, 'printInvoice'])->name('transactions.print');
-Route::get('transactions/export', [TransactionController::class, 'export'])->name('transactions.export');
-Route::post('transactions/{transaction}/update-shipping', [TransactionController::class, 'updateShipping'])->name('transactions.update-shipping');
 
-
-        
-        // Shipping Management
-        Route::get('shipping/{transaction}', [TransactionController::class, 'shipping'])->name('shipping.index');
-        Route::post('shipping/{transaction}', [TransactionController::class, 'updateShipping'])->name('shipping.update');
-        Route::post('shipping/{transaction}/complete', [TransactionController::class, 'completeShipping'])->name('shipping.complete');
-        
         // Users Management
         Route::resource('users', UserController::class);
         Route::post('users/{user}/update-status', [UserController::class, 'updateStatus'])->name('users.update-status');
         Route::post('users/{user}/update-role', [UserController::class, 'updateRole'])->name('users.update-role');
-        Route::post('users/{user}/verify-ktp', [UserController::class, 'verifyKtp'])->name('users.verify-ktp');
+        Route::post('users/{user}/update-points', [UserController::class, 'updatePoints'])->name('users.update-points');
 
-           
-    Route::post('/users/{id}/verify-ktp', [UserController::class, 'verifyKtp'])->name('users.verifyKtp');
-    Route::post('/users/{id}/update-deposit', [UserController::class, 'updateDeposit'])->name('users.updateDeposit');
     Route::post('/users/{id}/suspend', [UserController::class, 'suspend'])->name('users.suspend');
     Route::post('/users/{id}/activate', [UserController::class, 'activate'])->name('users.activate');
         
@@ -168,10 +158,14 @@ Route::post('transactions/{transaction}/update-shipping', [TransactionController
         Route::post('reviews/{review}/reply', [TransactionController::class, 'replyReview'])->name('reviews.reply');
         
         // Vouchers & Promotions
-        Route::get('vouchers', [TransactionController::class, 'vouchers'])->name('vouchers.index');
-        Route::post('vouchers', [TransactionController::class, 'storeVoucher'])->name('vouchers.store');
-        Route::put('vouchers/{voucher}', [TransactionController::class, 'updateVoucher'])->name('vouchers.update');
-        Route::delete('vouchers/{voucher}', [TransactionController::class, 'destroyVoucher'])->name('vouchers.destroy');
+        Route::get('vouchers', [VoucherController::class, 'index'])->name('vouchers.index');
+        Route::get('vouchers/create', [VoucherController::class, 'create'])->name('vouchers.create');
+        Route::post('vouchers', [VoucherController::class, 'store'])->name('vouchers.store');
+        Route::get('vouchers/{voucher}', [VoucherController::class, 'show'])->name('vouchers.show');
+        Route::get('vouchers/{voucher}/edit', [VoucherController::class, 'edit'])->name('vouchers.edit');
+        Route::put('vouchers/{voucher}', [VoucherController::class, 'update'])->name('vouchers.update');
+        Route::delete('vouchers/{voucher}', [VoucherController::class, 'destroy'])->name('vouchers.destroy');
+        Route::post('vouchers/{voucher}/toggle-active', [VoucherController::class, 'toggleActive'])->name('vouchers.toggle-active');
         
         // Reports
         Route::get('reports', [ReportController::class, 'index'])->name('reports.index');
@@ -180,11 +174,6 @@ Route::post('transactions/{transaction}/update-shipping', [TransactionController
         Route::get('reports/users', [ReportController::class, 'userReport'])->name('reports.users');
         Route::get('reports/export/{type}', [ReportController::class, 'exportReport'])->name('reports.export');
         
-        // Settings
-        Route::get('settings', [AdminDashboardController::class, 'settings'])->name('settings.index');
-        Route::post('settings', [AdminDashboardController::class, 'updateSettings'])->name('settings.update');
-        Route::get('settings/payment-methods', [AdminDashboardController::class, 'paymentMethods'])->name('settings.payment-methods');
-        Route::post('settings/payment-methods', [AdminDashboardController::class, 'updatePaymentMethods'])->name('settings.update-payment-methods');
         
         // Studio Management
         Route::get('studio/bookings', [AdminStudioController::class, 'bookings'])->name('studio.bookings');
@@ -198,12 +187,30 @@ Route::post('transactions/{transaction}/update-shipping', [TransactionController
         Route::put('studio/{studio}/paket/{paket}', [AdminStudioController::class, 'paketUpdate'])->name('studio.paket.update');
         Route::delete('studio/{studio}/paket/{paket}', [AdminStudioController::class, 'paketDestroy'])->name('studio.paket.destroy');
 
-        // Activity Logs
-        Route::get('activity-logs', [AdminDashboardController::class, 'activityLogs'])->name('activity-logs');
+        // Layanan Management
+            Route::get('layanan/bookings', [AdminLayananController::class, 'bookings'])->name('layanan.bookings');
+            Route::put('layanan/bookings/{id}/status', [AdminLayananController::class, 'bookingUpdateStatus'])->name('layanan.booking.update-status');
+            Route::get('layanan/bookings/{id}/print', [AdminLayananController::class, 'bookingPrint'])->name('layanan.booking.print');
+            Route::resource('layanan', AdminLayananController::class);
+            Route::get('layanan/{layanan}/paket', [AdminLayananController::class, 'paketIndex'])->name('layanan.paket.index');
+            Route::get('layanan/{layanan}/paket/create', [AdminLayananController::class, 'paketCreate'])->name('layanan.paket.create');
+            Route::post('layanan/{layanan}/paket', [AdminLayananController::class, 'paketStore'])->name('layanan.paket.store');
+            Route::get('layanan/{layanan}/paket/{paket}/edit', [AdminLayananController::class, 'paketEdit'])->name('layanan.paket.edit');
+            Route::put('layanan/{layanan}/paket/{paket}', [AdminLayananController::class, 'paketUpdate'])->name('layanan.paket.update');
+            Route::delete('layanan/{layanan}/paket/{paket}', [AdminLayananController::class, 'paketDestroy'])->name('layanan.paket.destroy');
+
+            // Activity Logs
+            Route::get('activity-logs', [AdminDashboardController::class, 'activityLogs'])->name('activity-logs');
+
+            // Portfolio Management
+            Route::get('portfolios', [App\Http\Controllers\Admin\PortfolioController::class, 'index'])->name('portfolios.index');
+            Route::get('portfolios/create', [App\Http\Controllers\Admin\PortfolioController::class, 'create'])->name('portfolios.create');
+            Route::post('portfolios', [App\Http\Controllers\Admin\PortfolioController::class, 'store'])->name('portfolios.store');
+            Route::get('portfolios/{portfolio}/edit', [App\Http\Controllers\Admin\PortfolioController::class, 'edit'])->name('portfolios.edit');
+            Route::put('portfolios/{portfolio}', [App\Http\Controllers\Admin\PortfolioController::class, 'update'])->name('portfolios.update');
+            Route::delete('portfolios/{portfolio}', [App\Http\Controllers\Admin\PortfolioController::class, 'destroy'])->name('portfolios.destroy');
+            Route::post('portfolios/{portfolio}/toggle-active', [App\Http\Controllers\Admin\PortfolioController::class, 'toggleActive'])->name('portfolios.toggle-active');
         
-        // Maintenance
-        Route::get('maintenance', [MaintenanceController::class, 'index'])->name('maintenance.index');
-        Route::post('maintenance/{maintenance}/complete', [MaintenanceController::class, 'complete'])->name('maintenance.complete');
     });
     
     // ============================================
@@ -214,6 +221,7 @@ Route::post('transactions/{transaction}/update-shipping', [TransactionController
         Route::get('/dashboard', [CustomerDashboardController::class, 'index'])->name('dashboard');
         Route::get('/dashboard/summary', [CustomerDashboardController::class, 'getSummary'])->name('dashboard.summary');
         Route::get('/dashboard/activity', [CustomerDashboardController::class, 'activity'])->name('dashboard.activity');
+        Route::get('/dashboard/vouchers', [CustomerDashboardController::class, 'vouchers'])->name('dashboard.vouchers');
         
         // Products Browsing
         Route::get('/products', [CustomerProductController::class, 'index'])->name('products.index');
@@ -235,7 +243,7 @@ Route::post('transactions/{transaction}/update-shipping', [TransactionController
         // Checkout Process
         Route::get('/checkout', [CheckoutController::class, 'index'])->name('checkout.index');
         Route::post('/checkout', [CheckoutController::class, 'process'])->name('checkout.process');
-        Route::post('/checkout/validate-voucher', [CheckoutController::class, 'checkVoucher'])->name('checkout.validate-voucher');
+        Route::post('/checkout/validate-voucher', [CheckoutController::class, 'checkVoucher'])->middleware('throttle:10,1')->name('checkout.validate-voucher');
         Route::get('/checkout/payment/{transaction}', [CheckoutController::class, 'payment'])->name('checkout.payment');
         Route::post('/checkout/midtrans-callback', [CheckoutController::class, 'midtransCallback'])->name('checkout.midtrans-callback');
         Route::get('/checkout/success/{transaction}', [CheckoutController::class, 'success'])->name('checkout.success');
@@ -250,6 +258,7 @@ Route::post('transactions/{transaction}/update-shipping', [TransactionController
         Route::post('/transactions/{transaction}/cancel', [CustomerTransactionController::class, 'cancel'])->name('transactions.cancel');
         Route::post('/transactions/{transaction}/request-cancel', [CustomerTransactionController::class, 'requestCancel'])->name('transactions.request-cancel');
         Route::post('/transactions/{transaction}/extend', [CustomerTransactionController::class, 'extend'])->name('transactions.extend');
+        Route::post('/transactions/{transaction}/confirm-return', [CustomerTransactionController::class, 'confirmReturn'])->name('transactions.confirm-return');
         
         // Reviews
         Route::get('/reviews', [ReviewController::class, 'index'])->name('reviews.index');
@@ -260,25 +269,34 @@ Route::post('transactions/{transaction}/update-shipping', [TransactionController
         Route::get('/reviews/{review}/edit', [ReviewController::class, 'edit'])->name('reviews.edit');
         Route::put('/reviews/{review}', [ReviewController::class, 'update'])->name('reviews.update');
         Route::delete('/reviews/{review}', [ReviewController::class, 'destroy'])->name('reviews.destroy');
+        Route::delete('/reviews/{review}/delete-photo', [ReviewController::class, 'deletePhoto'])->name('reviews.delete-photo');
         
-        // Deposit
-        Route::get('/deposit', [CustomerTransactionController::class, 'deposit'])->name('deposit.index');
-        Route::post('/deposit/topup', [CustomerTransactionController::class, 'topup'])->name('deposit.topup');
-        Route::get('/deposit/history', [CustomerTransactionController::class, 'depositHistory'])->name('deposit.history');
-        
-        // Shipping Tracking
-        Route::get('/shipping/{transaction}', [CustomerTransactionController::class, 'shipping'])->name('shipping.track');
 
         // Studio Rental
         Route::get('/studio', [CustomerStudioController::class, 'index'])->name('studio.index');
         Route::get('/studio/{slug}', [CustomerStudioController::class, 'show'])->name('studio.show');
+        Route::post('/studio/direct-booking', [CustomerStudioController::class, 'directStudio'])->name('studio.direct-booking');
         Route::post('/studio/booking', [CustomerStudioController::class, 'booking'])->name('studio.booking');
+        Route::post('/studio/check-voucher', [CustomerStudioController::class, 'checkVoucher'])->middleware('throttle:10,1')->name('studio.check-voucher');
         Route::get('/studio/payment/{id}', [CustomerStudioController::class, 'payment'])->name('studio.payment');
         Route::post('/studio/callback', [CustomerStudioController::class, 'callback'])->name('studio.callback');
         Route::get('/studio/check-status/{id}', [CustomerStudioController::class, 'checkStatus'])->name('studio.check-status');
         Route::get('/studio/booking/{id}/success', [CustomerStudioController::class, 'bookingSuccess'])->name('studio.booking.success');
         Route::get('/my-bookings/studio', [CustomerStudioController::class, 'myBookings'])->name('studio.my-bookings');
         Route::put('/studio/booking/{id}/cancel', [CustomerStudioController::class, 'bookingCancel'])->name('studio.booking.cancel');
+
+        // Layanan (Services)
+        Route::get('/layanan', [CustomerLayananController::class, 'index'])->name('layanan.index');
+        Route::get('/layanan/{slug}', [CustomerLayananController::class, 'show'])->name('layanan.show');
+        Route::post('/layanan/direct-booking', [CustomerLayananController::class, 'directLayanan'])->name('layanan.direct-booking');
+        Route::post('/layanan/booking', [CustomerLayananController::class, 'booking'])->name('layanan.booking');
+        Route::post('/layanan/check-voucher', [CustomerLayananController::class, 'checkVoucher'])->middleware('throttle:10,1')->name('layanan.check-voucher');
+        Route::get('/layanan/payment/{id}', [CustomerLayananController::class, 'payment'])->name('layanan.payment');
+        Route::post('/layanan/callback', [CustomerLayananController::class, 'callback'])->name('layanan.callback');
+        Route::get('/layanan/check-status/{id}', [CustomerLayananController::class, 'checkStatus'])->name('layanan.check-status');
+        Route::get('/layanan/booking/{id}/success', [CustomerLayananController::class, 'bookingSuccess'])->name('layanan.booking.success');
+        Route::get('/my-bookings/layanan', [CustomerLayananController::class, 'myBookings'])->name('layanan.my-bookings');
+        Route::put('/layanan/booking/{id}/cancel', [CustomerLayananController::class, 'bookingCancel'])->name('layanan.booking.cancel');
     });
 });
 
@@ -295,3 +313,5 @@ Route::post('/midtrans/notification', [CheckoutController::class, 'midtransNotif
     ->name('midtrans.notification');
 Route::post('/midtrans/studio-notification', [CustomerStudioController::class, 'notification'])
     ->name('midtrans.studio-notification');
+Route::post('/midtrans/layanan-notification', [CustomerLayananController::class, 'notification'])
+    ->name('midtrans.layanan-notification');

@@ -9,7 +9,12 @@ use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\Rule;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\Password;
+use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Str;
+use App\Mail\PhoneOtpMail;
 
 class AuthController extends Controller
 {
@@ -30,8 +35,20 @@ class AuthController extends Controller
             'email' => 'required|email',
             'password' => 'required',
         ]);
-        
+
+        // Rate limit: maksimal 5 percobaan gagal per menit per kombinasi email + IP
+        $throttleKey = Str::transliterate(Str::lower($request->input('email')) . '|' . $request->ip());
+
+        if (RateLimiter::tooManyAttempts($throttleKey, 5)) {
+            $seconds = RateLimiter::availableIn($throttleKey);
+
+            return back()->withErrors([
+                'email' => "Terlalu banyak percobaan login. Silakan coba lagi dalam {$seconds} detik.",
+            ])->onlyInput('email');
+        }
+
         if (Auth::attempt($credentials)) {
+            RateLimiter::clear($throttleKey);
             $request->session()->regenerate();
             
             /** @var User $user */
@@ -50,6 +67,8 @@ class AuthController extends Controller
             return redirect()->intended('/');
         }
         
+        RateLimiter::hit($throttleKey, 60);
+
         return back()->withErrors([
             'email' => 'Email atau password salah.',
         ])->onlyInput('email');
@@ -93,8 +112,6 @@ class AuthController extends Controller
         $userData['uuid'] = Str::uuid();
         $userData['role'] = 'customer';
         $userData['status'] = 'pending_verification';
-        $userData['saldo_deposit'] = 0;
-        $userData['saldo_credit'] = 0;
         $userData['poin_reward'] = 0;
         
         // Hapus field yang tidak ada di database
@@ -137,14 +154,15 @@ class AuthController extends Controller
     /**
      * Handle forgot password request.
      */
-    public function forgotPassword(Request $request)
+    public function sendResetLink(Request $request)
     {
         $request->validate(['email' => 'required|email']);
-        
-        // Implementation for password reset
-        // Laravel has built-in functionality for this
-        
-        return back()->with('status', 'Link reset password telah dikirim ke email Anda.');
+
+        $status = Password::sendResetLink($request->only('email'));
+
+        return $status === Password::RESET_LINK_SENT
+            ? back()->with('status', 'Link reset password telah dikirim ke email Anda.')
+            : back()->withErrors(['email' => 'Email tidak terdaftar pada sistem kami.']);
     }
 
     /**
@@ -152,7 +170,10 @@ class AuthController extends Controller
      */
     public function showResetPasswordForm($token)
     {
-        return view('auth.reset-password', ['token' => $token]);
+        return view('auth.reset-password', [
+            'token' => $token,
+            'email' => request()->query('email'),
+        ]);
     }
 
     /**
@@ -165,11 +186,73 @@ class AuthController extends Controller
             'email' => 'required|email',
             'password' => 'required|min:6|confirmed',
         ]);
-        
-        // Implementation for password reset
-        // Laravel has built-in functionality for this
-        
-        return redirect()->route('login')->with('status', 'Password berhasil direset.');
+
+        $status = Password::reset(
+            $request->only('email', 'password', 'password_confirmation', 'token'),
+            function ($user, $password) {
+                $user->forceFill([
+                    'password' => Hash::make($password),
+                ])->save();
+            }
+        );
+
+        return $status === Password::PASSWORD_RESET
+            ? redirect()->route('login')->with('status', 'Password berhasil direset.')
+            : back()->withErrors(['email' => 'Token reset password tidak valid atau telah kedaluwarsa.']);
+    }
+
+    /**
+     * Display email verification notice.
+     */
+    public function showVerificationNotice()
+    {
+        $user = Auth::user();
+
+        if ($user && $user->email_verified_at) {
+            return redirect()->route('dashboard');
+        }
+
+        return view('auth.verify-email');
+    }
+
+    /**
+     * Verify email from signed URL.
+     */
+    public function verifyEmail(Request $request, $id, $hash)
+    {
+        $user = User::findOrFail($id);
+
+        if (!hash_equals((string) $hash, sha1($user->email))) {
+            abort(403, 'Link verifikasi tidak valid.');
+        }
+
+        if (!$user->email_verified_at) {
+            $user->email_verified_at = now();
+            $user->save();
+        }
+
+        return redirect()->route('dashboard')
+            ->with('success', 'Email Anda berhasil diverifikasi!');
+    }
+
+    /**
+     * Resend email verification notification.
+     */
+    public function resendVerification(Request $request)
+    {
+        $user = Auth::user();
+
+        if (!$user) {
+            return redirect()->route('login');
+        }
+
+        if ($user->email_verified_at) {
+            return redirect()->route('dashboard');
+        }
+
+        $user->sendEmailVerificationNotification();
+
+        return back()->with('status', 'Link verifikasi baru telah dikirim ke email Anda.');
     }
 
     /**
@@ -243,6 +326,13 @@ class AuthController extends Controller
             $userData['foto_profil'] = $path;
         }
         
+        // Reset verifikasi telepon jika nomor berubah
+        if (isset($userData['telepon']) && $userData['telepon'] !== $user->telepon) {
+            $user->telepon_verified_at = null;
+            $user->phone_otp = null;
+            $user->phone_otp_expires_at = null;
+        }
+        
         // Gunakan eloquent update method
         $user->fill($userData);
         $user->save();
@@ -285,32 +375,63 @@ class AuthController extends Controller
     }
 
     /**
-     * Upload KTP.
+     * Kirim kode OTP verifikasi nomor telepon ke email pengguna.
      */
-    public function uploadKTP(Request $request)
+    public function sendPhoneOtp(Request $request)
     {
         /** @var User $user */
         $user = Auth::user();
-        
-        $request->validate([
-            'ktp_image' => 'required|image|mimes:jpeg,png,jpg,gif|max:2048',
-        ]);
-        
-        // Delete old KTP if exists
-        if ($user->ktp_image && Storage::disk('public')->exists($user->ktp_image)) {
-            Storage::disk('public')->delete($user->ktp_image);
+
+        // Cegah spam: maksimal 1x per 60 detik
+        $throttleKey = 'phone_otp_' . $user->id;
+        if (Cache::has($throttleKey)) {
+            return back()->with('warning', 'Kode OTP sudah dikirim. Tunggu 60 detik atau gunakan kode terakhir.');
         }
-        
-        // Upload new KTP
-        $filename = 'ktp-' . $user->id . '-' . time() . '.' . $request->file('ktp_image')->getClientOriginalExtension();
-        $path = $request->file('ktp_image')->storeAs('users/ktp', $filename, 'public');
-        
-        $user->ktp_image = $path;
-        $user->ktp_verified_at = null; // Reset verification
+
+        $otp = (string) random_int(100000, 999999);
+
+        $user->phone_otp = $otp;
+        $user->phone_otp_expires_at = now()->addMinutes(5);
         $user->save();
-        
+
+        Cache::put($throttleKey, true, 60);
+
+        Mail::to($user->email)->send(new PhoneOtpMail($user, $otp));
+
+        return back()->with('success', 'Kode verifikasi telah dikirim ke email ' . $user->email . '. Berlaku 5 menit.');
+    }
+
+    /**
+     * Verifikasi kode OTP yang dimasukkan pengguna.
+     */
+    public function verifyPhoneOtp(Request $request)
+    {
+        /** @var User $user */
+        $user = Auth::user();
+
+        $request->validate([
+            'phone_otp' => 'required|numeric|digits:6',
+        ]);
+
+        $submitted = $request->phone_otp;
+
+        if (!$user->phone_otp || $user->phone_otp !== $submitted) {
+            return back()->with('error', 'Kode verifikasi salah.');
+        }
+
+        if (!$user->phone_otp_expires_at || now()->greaterThan($user->phone_otp_expires_at)) {
+            return back()->with('error', 'Kode verifikasi telah kedaluwarsa. Silakan kirim ulang.');
+        }
+
+        $user->phone_otp = null;
+        $user->phone_otp_expires_at = null;
+        $user->telepon_verified_at = now();
+        $user->save();
+
+        Cache::forget('phone_otp_' . $user->id);
+
         return redirect()->route('profile')
-            ->with('success', 'KTP berhasil diupload. Menunggu verifikasi admin.');
+            ->with('success', 'Nomor telepon berhasil diverifikasi.');
     }
 
     /**

@@ -22,10 +22,14 @@ class ReviewController extends Controller
         $user = Auth::user();
         $transactions = $user->transaksis()
             ->where('status_transaksi', 'selesai')
-            ->whereDoesntHave('ulasan')
-            ->with('detailTransaksis.produk')
+            ->with(['detailTransaksis.produk', 'reviews'])
             ->orderBy('completed_at', 'desc')
-            ->get();
+            ->get()
+            ->filter(function ($t) {
+                return $t->detailTransaksis->contains(function ($d) use ($t) {
+                    return !$t->hasReviewForProduct($d->produk_id);
+                });
+            });
 
         return view('customer.reviews.available', compact('transactions'));
     }
@@ -36,14 +40,22 @@ class ReviewController extends Controller
             ->where('id', $transactionId)
             ->where('status_transaksi', 'selesai')
             ->firstOrFail();
-        
-        // Check if review already exists for this transaction
-        $existingReview = Ulasan::where('transaksi_id', $transactionId)->first();
-        if ($existingReview) {
-            return redirect()->route('customer.transactions.show', $transactionId)
-                ->with('info', 'Anda sudah memberikan ulasan untuk transaksi ini.');
+
+        $productId = request('product');
+        if ($productId) {
+            $exists = $transaction->detailTransaksis()->where('produk_id', $productId)->exists();
+            if (!$exists) {
+                return redirect()->route('customer.transactions.show', $transactionId)
+                    ->with('error', 'Produk tidak ditemukan dalam transaksi ini.');
+            }
+            $reviewed = Ulasan::where('transaksi_id', $transactionId)
+                ->where('produk_id', $productId)->exists();
+            if ($reviewed) {
+                return redirect()->route('customer.transactions.show', $transactionId)
+                    ->with('info', 'Anda sudah memberikan ulasan untuk produk ini.');
+            }
         }
-        
+
         return view('customer.reviews.create', compact('transaction'));
     }
     
@@ -63,11 +75,13 @@ class ReviewController extends Controller
             ->where('status_transaksi', 'selesai')
             ->firstOrFail();
         
-        // Check if review already exists
-        $existingReview = Ulasan::where('transaksi_id', $request->transaksi_id)->first();
+        // Check if review already exists for this product in this transaction
+        $existingReview = Ulasan::where('transaksi_id', $request->transaksi_id)
+            ->where('produk_id', $request->produk_id)
+            ->first();
         if ($existingReview) {
             return redirect()->back()
-                ->with('error', 'Anda sudah memberikan ulasan untuk transaksi ini.');
+                ->with('error', 'Anda sudah memberikan ulasan untuk produk ini.');
         }
         
         // Verify that the product belongs to the transaction

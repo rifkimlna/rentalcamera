@@ -66,14 +66,12 @@ class ProductController extends Controller
             'deskripsi_singkat' => 'nullable|string',
             'deskripsi_lengkap' => 'nullable|string',
             'harga_per_hari' => 'required|numeric|min:0',
-            'harga_per_minggu' => 'nullable|numeric|min:0',
-            'harga_per_bulan' => 'nullable|numeric|min:0',
             'stok_total' => 'required|integer|min:0',
             'minimum_sewa' => 'required|integer|min:1',
             'maximum_sewa' => 'required|integer|min:1',
             'gambar_utama' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
             'gambar_tambahan.*' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
-            'status' => 'required|in:available,unavailable,maintenance',
+            'status' => 'required|in:available,unavailable',
             'is_featured' => 'boolean',
             'is_recommended' => 'boolean',
             'berat' => 'nullable|numeric|min:0',
@@ -136,7 +134,20 @@ class ProductController extends Controller
         $validated['is_recommended'] = $request->boolean('is_recommended');
         
         // Create product
-        $product = Produk::create($validated);
+        try {
+            $product = Produk::create($validated);
+        } catch (\Throwable $e) {
+            // Rollback file yang baru diupload jika penyimpanan produk gagal
+            if (!empty($validated['gambar_utama']) && Storage::disk('public')->exists($validated['gambar_utama'])) {
+                Storage::disk('public')->delete($validated['gambar_utama']);
+            }
+            foreach ($gambarTambahan as $path) {
+                if (Storage::disk('public')->exists($path)) {
+                    Storage::disk('public')->delete($path);
+                }
+            }
+            throw $e;
+        }
         
         return redirect()->route('admin.products.index')
             ->with('success', 'Produk berhasil ditambahkan.');
@@ -148,7 +159,6 @@ public function show($id)
     $product = Produk::with([
         'kategori', 
         'brand', 
-        'maintenance', 
         'ulasan.user',
         'detailTransaksis.transaksi.user'
     ])->findOrFail($id);
@@ -177,14 +187,12 @@ public function show($id)
             'deskripsi_singkat' => 'nullable|string',
             'deskripsi_lengkap' => 'nullable|string',
             'harga_per_hari' => 'required|numeric|min:0',
-            'harga_per_minggu' => 'nullable|numeric|min:0',
-            'harga_per_bulan' => 'nullable|numeric|min:0',
             'stok_total' => 'required|integer|min:0',
             'minimum_sewa' => 'required|integer|min:1',
             'maximum_sewa' => 'required|integer|min:1',
             'gambar_utama' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
             'gambar_tambahan.*' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
-            'status' => 'required|in:available,unavailable,maintenance',
+            'status' => 'required|in:available,unavailable',
             'is_featured' => 'boolean',
             'is_recommended' => 'boolean',
             'berat' => 'nullable|numeric|min:0',
@@ -230,7 +238,7 @@ public function show($id)
         
         // Handle gambar tambahan
         if ($request->hasFile('gambar_tambahan')) {
-            $gambarTambahan = json_decode($product->gambar_tambahan, true) ?? [];
+            $gambarTambahan = is_array($product->gambar_tambahan) ? $product->gambar_tambahan : (json_decode($product->gambar_tambahan, true) ?? []);
             foreach ($request->file('gambar_tambahan') as $image) {
                 $filename = 'product-additional-' . time() . '-' . rand(1000, 9999) . '.' . $image->getClientOriginalExtension();
                 $path = $image->storeAs('products/additional', $filename, 'public');
@@ -268,7 +276,7 @@ public function show($id)
         }
         
         if ($product->gambar_tambahan) {
-            $images = json_decode($product->gambar_tambahan, true);
+            $images = is_array($product->gambar_tambahan) ? $product->gambar_tambahan : json_decode($product->gambar_tambahan, true);
             if (is_array($images)) {
                 foreach ($images as $image) {
                     if (Storage::disk('public')->exists($image)) {
@@ -295,69 +303,53 @@ public function show($id)
             $product = Produk::findOrFail($id);
             $imagePath = $request->image_path;
             
-            // Debug logging
-            Log::info('Delete image request:', [
-                'product_id' => $id,
-                'image_path' => $imagePath,
-                'type' => $request->type,
-                'index' => $request->index,
-                'storage_disk' => 'public',
-                'storage_exists' => Storage::disk('public')->exists($imagePath),
-                'storage_path' => storage_path('app/public/' . $imagePath)
-            ]);
-            
-            // Cek apakah file ada di storage
+            // Hapus file dari storage jika masih ada
             if (Storage::disk('public')->exists($imagePath)) {
-                // Hapus file dari storage
-                Storage::disk('public')->delete($imagePath);
-                
-                // Update database
-                if ($request->type === 'utama') {
-                    $product->gambar_utama = null;
-                } else {
-                    $additionalImages = json_decode($product->gambar_tambahan, true) ?? [];
-                    
-                    // Cari dan hapus gambar dari array
-                    $keyToRemove = null;
-                    foreach ($additionalImages as $key => $image) {
-                        // Bandingkan dengan path lengkap atau hanya nama file
-                        if ($image === $imagePath || basename($image) === basename($imagePath)) {
-                            $keyToRemove = $key;
-                            break;
-                        }
-                    }
-                    
-                    if ($keyToRemove !== null) {
-                        unset($additionalImages[$keyToRemove]);
-                        // Reset array index
-                        $additionalImages = array_values($additionalImages);
-                        
-                        if (empty($additionalImages)) {
-                            $product->gambar_tambahan = null;
-                        } else {
-                            $product->gambar_tambahan = json_encode($additionalImages);
-                        }
-                    }
+                if (!Storage::disk('public')->delete($imagePath)) {
+                    Log::warning('Gagal menghapus file gambar dari storage.', [
+                        'product_id' => $id,
+                        'image_path' => $imagePath,
+                    ]);
                 }
-                
-                $product->save();
-                
-                return response()->json([
-                    'success' => true,
-                    'message' => 'Gambar berhasil dihapus.'
+            } else {
+                Log::info('File gambar sudah tidak ada di storage, hanya membersihkan referensi database.', [
+                    'product_id' => $id,
+                    'image_path' => $imagePath,
                 ]);
             }
             
+            // Update database — tetap dijalankan walau file sudah tidak ada,
+            // agar referensi yang macet (broken image) tetap bisa dibersihkan dari web.
+            if ($request->type === 'utama') {
+                $product->gambar_utama = null;
+            } else {
+                $additionalImages = is_array($product->gambar_tambahan) ? $product->gambar_tambahan : (json_decode($product->gambar_tambahan, true) ?? []);
+                
+                // Cari dan hapus gambar dari array
+                $keyToRemove = null;
+                foreach ($additionalImages as $key => $image) {
+                    // Bandingkan dengan path lengkap atau hanya nama file
+                    if ($image === $imagePath || basename($image) === basename($imagePath)) {
+                        $keyToRemove = $key;
+                        break;
+                    }
+                }
+                
+                if ($keyToRemove !== null) {
+                    unset($additionalImages[$keyToRemove]);
+                    // Reset array index
+                    $additionalImages = array_values($additionalImages);
+                    
+                    $product->gambar_tambahan = !empty($additionalImages) ? $additionalImages : null;
+                }
+            }
+            
+            $product->save();
+            
             return response()->json([
-                'success' => false,
-                'message' => 'Gambar tidak ditemukan di storage.',
-                'debug' => [
-                    'requested_path' => $imagePath,
-                    'full_storage_path' => storage_path('app/public/' . $imagePath),
-                    'exists' => Storage::disk('public')->exists($imagePath),
-                    'files_in_directory' => Storage::disk('public')->files(dirname($imagePath))
-                ]
-            ], 404);
+                'success' => true,
+                'message' => 'Gambar berhasil dihapus.'
+            ]);
             
         } catch (\Exception $e) {
             Log::error('Delete image error:', [
@@ -377,7 +369,7 @@ public function show($id)
         $product = Produk::findOrFail($id);
         
         $request->validate([
-            'status' => 'required|in:available,unavailable,maintenance'
+            'status' => 'required|in:available,unavailable'
         ]);
         
         $product->update(['status' => $request->status]);

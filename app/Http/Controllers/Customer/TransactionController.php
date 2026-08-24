@@ -3,17 +3,30 @@
 namespace App\Http\Controllers\Customer;
 
 use App\Http\Controllers\Controller;
-use App\Models\Transaksi;
+use App\Models\Transaksis;
 use App\Models\DetailTransaksis;
 use App\Models\Ulasan;
 use App\Models\ActivityLog;
+use App\Models\StudioBooking;
+use App\Models\LayananBooking;
+use App\Models\Voucher;
+use App\Models\VoucherUsage;
+use App\Services\MidtransService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Pagination\LengthAwarePaginator;
 
 class TransactionController extends Controller
 {
+    protected $midtransService;
+
+    public function __construct(MidtransService $midtransService)
+    {
+        $this->midtransService = $midtransService;
+    }
+
     /**
      * Display a listing of transactions.
      */
@@ -21,75 +34,151 @@ class TransactionController extends Controller
     {
         /** @var \App\Models\User $user */
         $user = Auth::user();
-        
-        $query = $user->transaksis()->with('detailTransaksis.produk', 'paymentMethod');
-        
-        // Filter by status
-        if ($request->filled('status')) {
-            if ($request->status === 'active') {
-                $query->whereIn('status_transaksi', ['dikonfirmasi', 'dikemas', 'dikirim']);
-            } elseif ($request->status === 'completed') {
-                $query->where('status_transaksi', 'selesai');
-            } elseif ($request->status === 'cancelled') {
-                $query->where('status_transaksi', 'dibatalkan');
-            } elseif ($request->status === 'pending') {
-                $query->where('status_pembayaran', 'pending');
-            }
-        }
-        
-        // Filter by date
-        if ($request->filled('date_from')) {
-            $query->whereDate('created_at', '>=', $request->date_from);
-        }
-        
-        if ($request->filled('date_to')) {
-            $query->whereDate('created_at', '<=', $request->date_to);
-        }
-        
-        // Search
+        $userId = $user->id;
+        $allTransactions = collect();
+
+        // 1. Camera rentals
+        $rentalQuery = Transaksis::with('detailTransaksis.produk', 'paymentMethod')
+            ->where('user_id', $userId);
         if ($request->filled('search')) {
-            $search = $request->search;
-            $query->where(function($q) use ($search) {
-                $q->where('kode_transaksi', 'like', "%{$search}%")
-                  ->orWhere('nama_produk', 'like', "%{$search}%")
-                  ->orWhereHas('detailTransaksis', function($q2) use ($search) {
-                      $q2->where('nama_produk', 'like', "%{$search}%");
-                  });
+            $s = $request->search;
+            $rentalQuery->where(function ($q) use ($s) {
+                $q->where('kode_transaksi', 'like', "%{$s}%")
+                  ->orWhere('nama_customer', 'like', "%{$s}%");
             });
         }
-        
-        $transactions = $query->orderBy('created_at', 'desc')->paginate(15);
-        
+        $rentals = $rentalQuery->orderBy('created_at', 'desc')->get()->map(function ($t) {
+            $t->tipe = 'sewa_kamera';
+            $t->tipe_label = 'Sewa Kamera';
+            $t->kode = $t->kode_transaksi;
+            $t->status_global = $t->status_transaksi;
+            $t->status_bayar = $t->status_pembayaran;
+            $t->total = $t->grand_total;
+            $t->detail_link = route('customer.transactions.show', [$t->id, 'type' => 'sewa_kamera']);
+            return $t;
+        });
+        $allTransactions = $allTransactions->merge($rentals);
+        $studioQuery = StudioBooking::with('studio', 'paketStudio', 'paymentMethod')
+            ->where('user_id', $userId);
+        if ($request->filled('search')) {
+            $s = $request->search;
+            $studioQuery->whereHas('studio', fn($q) => $q->where('nama_studio', 'like', "%{$s}%"));
+        }
+        $studios = $studioQuery->orderBy('created_at', 'desc')->get()->map(function ($t) {
+            $t->tipe = 'studio';
+            $t->tipe_label = 'Booking Studio';
+            $t->kode = 'STD-' . $t->id;
+            $t->status_global = $t->status;
+            $t->status_bayar = $t->payment_status;
+            $t->total = $t->grand_total ?? $t->total_harga;
+            $t->detail_link = route('customer.transactions.show', [$t->id, 'type' => 'studio']);
+            return $t;
+        });
+        $allTransactions = $allTransactions->merge($studios);
+
+        // 3. Layanan bookings
+        $layananQuery = LayananBooking::with('layanan', 'paketLayanan', 'paymentMethod')
+            ->where('user_id', $userId);
+        if ($request->filled('search')) {
+            $s = $request->search;
+            $layananQuery->whereHas('layanan', fn($q) => $q->where('nama_layanan', 'like', "%{$s}%"));
+        }
+        $layanans = $layananQuery->orderBy('created_at', 'desc')->get()->map(function ($t) {
+            $t->tipe = 'layanan';
+            $t->tipe_label = 'Booking Layanan';
+            $t->kode = 'LYN-' . $t->id;
+            $t->status_global = $t->status;
+            $t->status_bayar = $t->payment_status;
+            $t->total = $t->grand_total ?? $t->total_harga;
+            $t->detail_link = route('customer.transactions.show', [$t->id, 'type' => 'layanan']);
+            return $t;
+        });
+        $allTransactions = $allTransactions->merge($layanans);
+
+        // Filter by status
+        if ($request->filled('status')) {
+            $filtered = $allTransactions;
+            if ($request->status === 'pending') {
+                $filtered = $allTransactions->filter(fn($t) => $t->status_bayar === 'pending');
+            } elseif ($request->status === 'active') {
+                $filtered = $allTransactions->filter(fn($t) => in_array($t->status_global, ['confirmed', 'dikonfirmasi', 'siap_diambil']));
+            } elseif ($request->status === 'completed') {
+                $filtered = $allTransactions->filter(fn($t) => in_array($t->status_global, ['completed', 'selesai']));
+            } elseif ($request->status === 'cancelled') {
+                $filtered = $allTransactions->filter(fn($t) => in_array($t->status_global, ['cancelled', 'dibatalkan']));
+            }
+            $allTransactions = $filtered;
+        }
+
+        // Sort by created_at desc
+        $sorted = $allTransactions->sortByDesc('created_at');
+
+        // Paginate
+        $perPage = 15;
+        $page = $request->get('page', 1);
+        $paginated = new LengthAwarePaginator(
+            $sorted->slice(($page - 1) * $perPage, $perPage)->values(),
+            $sorted->count(),
+            $perPage,
+            $page,
+            ['path' => $request->url(), 'query' => $request->query()]
+        );
+
         $statuses = [
-            'all' => 'Semua Transaksi',
-            'active' => 'Sedang Disewa',
+            '' => 'Semua Transaksi',
+            'pending' => 'Menunggu Pembayaran',
+            'active' => 'Sedang Berjalan',
             'completed' => 'Selesai',
             'cancelled' => 'Dibatalkan',
-            'pending' => 'Menunggu Pembayaran',
         ];
-        
-        return view('customer.transactions.index', compact('transactions', 'statuses'));
+
+        return view('customer.transactions.index', compact('paginated', 'statuses'));
     }
 
     /**
-     * Display the specified transaction.
+     * Display the specified transaction (camera rental, studio, or layanan).
      */
     public function show($id)
     {
         /** @var \App\Models\User $user */
         $user = Auth::user();
-        
-        $transaction = $user->transaksis()
+        $type = request('type', 'sewa_kamera');
+
+        if ($type === 'studio') {
+            $booking = StudioBooking::with(['studio', 'paketStudio', 'paymentMethod'])
+                ->where('user_id', $user->id)
+                ->findOrFail($id);
+            return view('customer.transactions.show', [
+                'transaction' => $booking,
+                'bookingType' => 'studio',
+            ]);
+        }
+
+        if ($type === 'layanan') {
+            $booking = LayananBooking::with(['layanan', 'paketLayanan', 'paymentMethod'])
+                ->where('user_id', $user->id)
+                ->findOrFail($id);
+            return view('customer.transactions.show', [
+                'transaction' => $booking,
+                'bookingType' => 'layanan',
+            ]);
+        }
+
+        // Default: camera rental
+        $transaksi = $user->transaksis()
             ->with([
                 'detailTransaksis.produk',
                 'paymentMethod',
-                'pengiriman',
                 'ulasan',
+                'reviews',
                 'paymentLogs'
             ])
             ->findOrFail($id);
         
-        return view('customer.transactions.show', compact('transaction'));
+        return view('customer.transactions.show', [
+            'transaction' => $transaksi,
+            'bookingType' => 'sewa_kamera',
+        ]);
     }
 
     /**
@@ -102,9 +191,22 @@ class TransactionController extends Controller
         
         $transaction = $user->transaksis()
             ->where('id', $id)
-            ->where('status_transaksi', 'menunggu_pembayaran')
+            ->where(function ($q) {
+                $q->where('status_transaksi', 'menunggu_pembayaran')
+                  ->orWhere('status_transaksi', 'diproses');
+            })
             ->where('status_pembayaran', 'pending')
             ->firstOrFail();
+        
+        // Batalkan juga di sisi Midtrans agar VA/Snap tidak bisa dibayar setelahnya
+        if ($transaction->midtrans_order_id) {
+            $this->midtransService->cancelTransaction($transaction->midtrans_order_id);
+
+            if ($this->midtransService->isPaidAtGateway($transaction->midtrans_order_id)) {
+                return redirect()->back()
+                    ->with('error', 'Transaksi ini sudah terbayar di Midtrans dan tidak dapat dibatalkan. Silakan hubungi admin untuk pengembalian dana.');
+            }
+        }
         
         $reason = $request->filled('reason') ? $request->reason : 'Tidak ada alasan';
         
@@ -119,6 +221,17 @@ class TransactionController extends Controller
                 'catatan' => ($transaction->catatan ? $transaction->catatan . "\n" : '') . 
                             'Dibatalkan oleh customer: ' . $reason,
             ]);
+
+            // Kembalikan stok produk
+            foreach ($transaction->detailTransaksis as $detail) {
+                if ($detail->produk) {
+                    $detail->produk->updateStock('return', $detail->jumlah);
+                }
+            }
+
+            // Kembalikan kuota voucher & hapus catatan pemakaiannya
+            Voucher::releaseByCode($transaction->kode_voucher);
+            VoucherUsage::where('transaksi_id', $transaction->id)->delete();
             
             // Log activity
             ActivityLog::create([
@@ -440,28 +553,6 @@ class TransactionController extends Controller
         return redirect()->back()->with('info', 'Fitur perpanjangan sewa sedang dalam pengembangan.');
     }
 
-    public function deposit()
-    {
-        return view('customer.deposit.index');
-    }
-
-    public function topup(Request $request)
-    {
-        return redirect()->back()->with('info', 'Fitur top up deposit sedang dalam pengembangan.');
-    }
-
-    public function depositHistory(Request $request)
-    {
-        return redirect()->route('customer.deposit.index')->with('info', 'Fitur riwayat deposit sedang dalam pengembangan.');
-    }
-
-    public function shipping($id)
-    {
-        $user = Auth::user();
-        $transaction = $user->transaksis()->with('pengiriman')->findOrFail($id);
-        return view('customer.shipping.track', compact('transaction'));
-    }
-
     /**
      * Download transaction invoice.
      */
@@ -486,129 +577,46 @@ class TransactionController extends Controller
     }
 
     /**
-     * Confirm receipt of goods.
-     */
-    public function confirmReceipt($id)
-    {
-        /** @var \App\Models\User $user */
-        $user = Auth::user();
-        
-        $transaction = $user->transaksis()
-            ->where('id', $id)
-            ->where('status_transaksi', 'dikirim')
-            ->firstOrFail();
-        
-        DB::beginTransaction();
-        
-        try {
-            // Update transaction status
-            $transaction->update([
-                'status_transaksi' => 'dalam_perjalanan',
-                'shipped_at' => now(),
-            ]);
-            
-            // Update pengiriman status
-            if ($transaction->pengiriman) {
-                $transaction->pengiriman->update([
-                    'status' => 'delivered',
-                    'actual_delivery' => now(),
-                ]);
-            }
-            
-            // Log activity
-            ActivityLog::create([
-                'user_id' => $user->id,
-                'type' => 'transaction',
-                'description' => "Mengonfirmasi penerimaan barang untuk transaksi #{$transaction->kode_transaksi}",
-                'ip_address' => request()->ip(),
-            ]);
-            
-            DB::commit();
-            
-            return redirect()->route('customer.transactions.show', $transaction->id)
-                ->with('success', 'Penerimaan barang berhasil dikonfirmasi.');
-                
-        } catch (\Exception $e) {
-            DB::rollBack();
-            
-            return redirect()->back()
-                ->with('error', 'Gagal mengonfirmasi penerimaan: ' . $e->getMessage());
-        }
-    }
-
-    /**
-     * Confirm return of goods.
+     * Confirm return of goods (customer has returned to store).
      */
     public function confirmReturn($id)
     {
         /** @var \App\Models\User $user */
         $user = Auth::user();
-        
+
         $transaction = $user->transaksis()
             ->where('id', $id)
-            ->where('status_transaksi', 'dalam_perjalanan')
+            ->whereIn('status_transaksi', ['dikonfirmasi', 'siap_diambil', 'diproses'])
+            ->whereIn('status_pembayaran', ['settlement', 'capture'])
             ->firstOrFail();
-        
+
         DB::beginTransaction();
-        
+
         try {
-            // Update transaction status
             $transaction->update([
                 'status_transaksi' => 'selesai',
                 'completed_at' => now(),
             ]);
-            
-            // Log activity
+
             ActivityLog::create([
                 'user_id' => $user->id,
                 'type' => 'transaction',
                 'description' => "Mengonfirmasi pengembalian barang untuk transaksi #{$transaction->kode_transaksi}",
                 'ip_address' => request()->ip(),
             ]);
-            
+
             DB::commit();
-            
+
             return redirect()->route('customer.transactions.show', $transaction->id)
                 ->with('success', 'Pengembalian barang berhasil dikonfirmasi.');
-                
+
         } catch (\Exception $e) {
             DB::rollBack();
-            
+
             return redirect()->back()
                 ->with('error', 'Gagal mengonfirmasi pengembalian: ' . $e->getMessage());
         }
     }
 
-    /**
-     * Request pickup for return.
-     */
-    public function requestPickup(Request $request, $id)
-    {
-        /** @var \App\Models\User $user */
-        $user = Auth::user();
-        
-        $transaction = $user->transaksis()
-            ->where('id', $id)
-            ->whereIn('status_transaksi', ['dalam_perjalanan', 'dikirim'])
-            ->firstOrFail();
-        
-        $request->validate([
-            'pickup_date' => 'required|date|after:today',
-            'pickup_time' => 'required',
-            'notes' => 'nullable|string|max:500',
-        ]);
-        
-        // Update pengiriman for return pickup
-        if ($transaction->pengiriman) {
-            $transaction->pengiriman->update([
-                'status' => 'returned',
-                'estimated_delivery' => $request->pickup_date . ' ' . $request->pickup_time,
-                'catatan' => ($transaction->pengiriman->catatan ? $transaction->pengiriman->catatan . "\n" : '') .
-                            'Pickup requested: ' . $request->notes,
-            ]);
-        }
-        
-        return redirect()->back()
-            ->with('success', 'Permintaan penjemputan telah dikirim. Tim kami akan menghubungi Anda.');
-    }
+
 }

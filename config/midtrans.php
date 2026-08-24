@@ -12,7 +12,7 @@ return [
     'server_key' => env('MIDTRANS_SERVER_KEY'),
 
     'is_production' => env('MIDTRANS_IS_PRODUCTION', false),
-    'is_sanbox' => env('MIDTRANS_IS_SANDBOX', !env('MIDTRANS_IS_PRODUCTION')),
+    'is_sandbox' => env('MIDTRANS_IS_SANDBOX', !env('MIDTRANS_IS_PRODUCTION')),
     'is_3ds' => env('MIDTRANS_IS_3DS', true),
     'is_sanitized' => env('MIDTRANS_SANITIZED', true),
 
@@ -38,7 +38,12 @@ return [
     /**
      * Snap.js URL
      */
-    'snap_js_url' => env('MIDTRANS_SNAP_JS', 'https://app.sandbox.midtrans.com/snap/snap.js'),
+    'snap_js_url' => env(
+        'MIDTRANS_SNAP_JS',
+        env('MIDTRANS_IS_PRODUCTION', false)
+            ? 'https://app.midtrans.com/snap/snap.js'
+            : 'https://app.sandbox.midtrans.com/snap/snap.js'
+    ),
 
     /**
      * Midtrans API URLs

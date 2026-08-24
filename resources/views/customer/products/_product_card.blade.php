@@ -1,89 +1,63 @@
-<div class="card bg-base-100 shadow-md">
-    @if($product->is_featured)
-        <div class="absolute top-2 left-2 z-10">
-            <span class="badge badge-error">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3 me-1" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z" />
-                </svg>
-                Featured
-            </span>
-        </div>
-    @endif
-
-    <figure>
+<div class="card-apple overflow-hidden">
+    <a href="{{ route('customer.products.show', $product->slug) }}" class="group relative overflow-hidden bg-[#f5f5f7] aspect-square block">
         @if($product->gambar_utama)
-            <img src="{{ asset('storage/' . $product->gambar_utama) }}" 
-                 class="w-full h-48 object-cover" alt="{{ $product->nama_produk }}">
+            <img src="{{ asset('storage/' . $product->gambar_utama) }}" class="absolute inset-0 w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" alt="{{ $product->nama_produk }}">
         @else
-            <div class="bg-base-200 w-full h-48 flex items-center justify-center">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-12 w-12 text-base-content/60" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
-                </svg>
+            <div class="absolute inset-0 flex items-center justify-center bg-gradient-to-br from-[#f0f0f2] to-[#e5e5e7]">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-12 sm:h-16 w-12 sm:w-16 text-[#d1d1d6]" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="0.8"><path stroke-linecap="round" stroke-linejoin="round" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"/><path stroke-linecap="round" stroke-linejoin="round" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
             </div>
         @endif
-    </figure>
+        <div class="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent"></div>
 
-    <div class="card-body">
-        <div class="flex items-start justify-between mb-2">
-            <h5 class="card-title text-sm">{{ Str::limit($product->nama_produk, 30) }}</h5>
-            @if($product->status != 'available')
-                <span class="badge badge-error badge-sm">Tidak Tersedia</span>
+        <div class="absolute top-2 right-2 sm:top-3 sm:right-3 flex flex-col items-end gap-1">
+            @if($product->is_featured)
+                <span class="inline-flex items-center text-[10px] sm:text-xs font-medium text-white/90 bg-white/15 backdrop-blur-md px-2 sm:px-3 py-0.5 sm:py-1 rounded-full">Featured</span>
+            @endif
+            @if($product->is_recommended)
+                <span class="inline-flex items-center text-[10px] sm:text-xs font-medium text-white/90 bg-white/15 backdrop-blur-md px-2 sm:px-3 py-0.5 sm:py-1 rounded-full">Rekomendasi</span>
             @endif
         </div>
 
-        <div class="flex gap-1 mb-2">
-            <span class="badge badge-ghost badge-sm">{{ $product->kategori->nama_kategori ?? 'Uncategorized' }}</span>
+        <div class="absolute bottom-0 left-0 right-0 p-2.5 sm:p-3 lg:p-4 text-white">
+            <p class="text-xs sm:text-sm lg:text-base font-semibold truncate">{{ $product->nama_produk }}</p>
+            <div class="flex items-center gap-0.5 sm:gap-1 mt-0.5 sm:mt-1">
+                @for($i = 1; $i <= 5; $i++)
+                    <svg class="h-2.5 w-2.5 sm:h-3 sm:w-3 {{ $i <= round($product->rating) ? 'text-[#ff9500]' : 'text-white/30' }}" fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/></svg>
+                @endfor
+                <span class="text-[10px] sm:text-xs text-white/70 ml-0.5 sm:ml-1">({{ $product->rating }})</span>
+            </div>
+        </div>
+    </a>
+
+    <div class="p-2.5 sm:p-3 lg:p-4 bg-white">
+        <div class="flex items-center justify-between gap-1.5 mb-1.5 sm:mb-2">
+            <div class="min-w-0">
+                <div class="flex items-baseline gap-1">
+                    <span class="text-xs sm:text-sm lg:text-base font-bold text-[#1d1d1f]">Rp {{ number_format($product->harga_per_hari, 0, ',', '.') }}</span>
+                    <span class="text-[10px] sm:text-xs text-[#86868b]">/hari</span>
+                </div>
+            </div>
+            @if($product->status != 'available' || $product->stok_tersedia <= 0)
+                <span class="badge-error !text-[9px] sm:!text-[10px] !px-1.5 sm:!px-2.5 !py-0">Habis</span>
+            @endif
+        </div>
+
+        <div class="flex items-center gap-1 mb-2 sm:mb-3 flex-wrap">
+            @if($product->kategori)
+                <span class="badge-apple !text-[9px] sm:!text-[10px] !px-1.5 sm:!px-2 !py-0">{{ $product->kategori->nama_kategori }}</span>
+            @endif
             @if($product->brand)
-                <span class="badge badge-ghost badge-sm">{{ $product->brand->nama_brand }}</span>
+                <span class="badge-apple !text-[9px] sm:!text-[10px] !px-1.5 sm:!px-2 !py-0">{{ $product->brand->nama_brand }}</span>
             @endif
         </div>
 
-        <div class="rating rating-xs mb-2">
-            @for($i = 1; $i <= 5; $i++)
-                <input type="radio" name="card-rating-{{ $product->id }}" class="mask mask-star-2 bg-orange-400" disabled {{ $i <= round($product->rating) ? 'checked' : '' }} />
-            @endfor
-            <small class="text-base-content/60 ms-1">({{ $product->rating }})</small>
-            <small class="text-base-content/60 ms-2">{{ $product->jumlah_ulasan }} ulasan</small>
-        </div>
-
-        <p class="text-base-content/60 text-xs mb-3">
-            {{ Str::limit($product->deskripsi_singkat, 80) }}
-        </p>
-
-        <div class="flex items-center justify-between">
-            <div class="price">
-                <strong>Rp {{ number_format($product->harga_per_hari, 0, ',', '.') }}</strong>
-                <small class="text-base-content/60 block">per hari</small>
-            </div>
-
+        <div class="flex gap-1.5 sm:gap-2">
+            <a href="{{ route('customer.products.show', $product->slug) }}" class="flex-1 text-center text-[11px] sm:text-xs lg:text-sm font-medium py-1.5 sm:py-2 rounded-lg lg:rounded-xl border border-[#e5e5e7] text-[#1d1d1f] hover:bg-[#f5f5f7] transition-colors">Detail</a>
             @if($product->status == 'available' && $product->stok_tersedia > 0)
-                <a href="{{ route('customer.products.show', $product->slug) }}" class="btn btn-primary btn-sm">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 me-1 inline" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                        <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                        <path stroke-linecap="round" stroke-linejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-                    </svg>
-                    Detail
-                </a>
+                <a href="{{ route('customer.products.show', $product->slug) }}" class="flex-1 text-center text-[11px] sm:text-xs lg:text-sm font-medium py-1.5 sm:py-2 rounded-lg lg:rounded-xl bg-[#1d1d1f] text-white hover:bg-[#333] transition-colors">Sewa</a>
             @else
-                <button class="btn btn-outline btn-secondary btn-sm" disabled>
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 me-1 inline" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                        <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
-                    </svg>
-                    Habis
-                </button>
+                <button class="flex-1 text-[11px] sm:text-xs lg:text-sm font-medium py-1.5 sm:py-2 rounded-lg lg:rounded-xl bg-[#f5f5f7] text-[#86868b] cursor-not-allowed" disabled>Tidak Tersedia</button>
             @endif
         </div>
-
-        @if($product->stok_tersedia > 0)
-            <div class="mt-2">
-                <small class="text-success flex items-center gap-1">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                        <path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                    </svg>
-                    Stok tersedia: {{ $product->stok_tersedia }}
-                </small>
-            </div>
-        @endif
     </div>
 </div>

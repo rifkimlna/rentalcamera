@@ -4,8 +4,6 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
-use App\Events\NotificationBroadcast;
-
 class Notification extends Model
 {
     use HasFactory;
@@ -56,11 +54,6 @@ class Notification extends Model
         return $query->where('type', 'payment');
     }
 
-    public function scopeShipping($query)
-    {
-        return $query->where('type', 'shipping');
-    }
-
     public function scopeSystem($query)
     {
         return $query->where('type', 'system');
@@ -72,23 +65,11 @@ class Notification extends Model
     }
 
     // Methods
-    protected static function booted(): void
-    {
-        static::created(function (Notification $notification) {
-            try {
-                NotificationBroadcast::dispatch($notification);
-            } catch (\Throwable $e) {
-                \Illuminate\Support\Facades\Log::warning('Broadcast notif gagal: ' . $e->getMessage());
-            }
-        });
-    }
-
     public function getTypeLabelAttribute()
     {
         $types = [
             'transaction' => 'Transaksi',
             'payment' => 'Pembayaran',
-            'shipping' => 'Pengiriman',
             'system' => 'Sistem',
             'promotion' => 'Promosi',
         ];
@@ -126,17 +107,6 @@ class Notification extends Model
         return self::create([
             'user_id' => $userId,
             'type' => 'payment',
-            'title' => $title,
-            'message' => $message,
-            'data' => $data,
-        ]);
-    }
-
-    public static function sendShippingNotification($userId, $title, $message, $data = null)
-    {
-        return self::create([
-            'user_id' => $userId,
-            'type' => 'shipping',
             'title' => $title,
             'message' => $message,
             'data' => $data,

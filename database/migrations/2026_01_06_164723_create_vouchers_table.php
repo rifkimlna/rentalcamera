@@ -12,7 +12,7 @@ return new class extends Migration
             $table->id();
             $table->string('kode_voucher', 50)->unique();
             $table->string('nama_voucher', 100);
-            $table->enum('type', ['percentage', 'fixed', 'shipping']);
+            $table->enum('type', ['percentage', 'fixed']);
             $table->decimal('value', 12, 2);
             $table->decimal('min_purchase', 12, 2)->default(0);
             $table->decimal('max_discount', 12, 2)->nullable();

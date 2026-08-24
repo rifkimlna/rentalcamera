@@ -24,8 +24,6 @@ class Produk extends Model
         'spesifikasi',
         'fitur',
         'harga_per_hari',
-        'harga_per_minggu',
-        'harga_per_bulan',
         'stok_total',
         'stok_tersedia',
         'stok_rusak',
@@ -51,8 +49,6 @@ class Produk extends Model
         'spesifikasi' => 'array',
         'gambar_tambahan' => 'array',
         'harga_per_hari' => 'decimal:2',
-        'harga_per_minggu' => 'decimal:2',
-        'harga_per_bulan' => 'decimal:2',
         'stok_total' => 'integer',
         'stok_tersedia' => 'integer',
         'stok_rusak' => 'integer',
@@ -87,11 +83,6 @@ class Produk extends Model
     public function keranjangs()
     {
         return $this->hasMany(Keranjang::class, 'produk_id');
-    }
-
-    public function maintenance()
-    {
-        return $this->hasMany(Maintenance::class, 'produk_id');
     }
 
     public function ulasan()
@@ -166,22 +157,11 @@ class Produk extends Model
         return 'Rp ' . number_format($this->harga_per_hari, 0, ',', '.');
     }
 
-    public function getHargaPerMingguFormattedAttribute()
-    {
-        return $this->harga_per_minggu ? 'Rp ' . number_format($this->harga_per_minggu, 0, ',', '.') : null;
-    }
-
-    public function getHargaPerBulanFormattedAttribute()
-    {
-        return $this->harga_per_bulan ? 'Rp ' . number_format($this->harga_per_bulan, 0, ',', '.') : null;
-    }
-
     public function getStatusLabelAttribute()
     {
         $statuses = [
             'available' => 'Tersedia',
             'unavailable' => 'Tidak Tersedia',
-            'maintenance' => 'Maintenance',
         ];
         return $statuses[$this->status] ?? $this->status;
     }
@@ -249,40 +229,71 @@ class Produk extends Model
 
     public function updateStock($type, $quantity)
     {
+        $q = max(0, (int) $quantity);
+        $id = $this->getKey();
+        $ok = true;
+
+        // Semua mutasi stok dilakukan atomik di level database (bukan read-modify-write)
+        // agar aman dari race condition saat checkout paralel.
         switch ($type) {
             case 'increase':
-                $this->stok_total += $quantity;
-                $this->stok_tersedia += $quantity;
+                static::whereKey($id)->increment('stok_total', $q);
+                static::whereKey($id)->increment('stok_tersedia', $q);
                 break;
             case 'decrease':
-                $this->stok_total -= $quantity;
-                $this->stok_tersedia -= $quantity;
+                $ok = (bool) static::whereKey($id)
+                    ->where('stok_tersedia', '>=', $q)
+                    ->where('stok_total', '>=', $q)
+                    ->decrement('stok_total', $q);
+                if ($ok) {
+                    static::whereKey($id)->decrement('stok_tersedia', $q);
+                }
                 break;
             case 'rent':
-                $this->stok_dipinjam += $quantity;
-                $this->stok_tersedia -= $quantity;
+                // Kurangi hanya jika stok cukup; gagal jika sudah habis (race lost)
+                $ok = (bool) static::whereKey($id)
+                    ->where('stok_tersedia', '>=', $q)
+                    ->decrement('stok_tersedia', $q);
+                if ($ok) {
+                    static::whereKey($id)->increment('stok_dipinjam', $q);
+                }
                 break;
             case 'return':
-                $this->stok_dipinjam -= $quantity;
-                $this->stok_tersedia += $quantity;
+                // Kembalikan maksimal sejumlah unit yang benar-benar sedang dipinjam
+                $dipinjamSekarang = (int) static::whereKey($id)->value('stok_dipinjam');
+                $dikembalikan = min($q, max(0, $dipinjamSekarang));
+                static::whereKey($id)->increment('stok_tersedia', $dikembalikan);
+                static::whereKey($id)->decrement('stok_dipinjam', $dikembalikan);
                 break;
             case 'damage':
-                $this->stok_rusak += $quantity;
-                $this->stok_tersedia -= $quantity;
+                $ok = (bool) static::whereKey($id)
+                    ->where('stok_tersedia', '>=', $q)
+                    ->decrement('stok_tersedia', $q);
+                if ($ok) {
+                    static::whereKey($id)->increment('stok_rusak', $q);
+                }
                 break;
             case 'repair':
-                $this->stok_rusak -= $quantity;
-                $this->stok_tersedia += $quantity;
+                // Perbaiki maksimal sejumlah unit yang benar-benar rusak
+                $rusakSekarang = (int) static::whereKey($id)->value('stok_rusak');
+                $diperbaiki = min($q, max(0, $rusakSekarang));
+                static::whereKey($id)->decrement('stok_rusak', $diperbaiki);
+                static::whereKey($id)->increment('stok_tersedia', $diperbaiki);
                 break;
         }
 
-        return $this->save();
+        // Sinkronkan state in-memory dengan nilai terbaru di database
+        $this->refresh();
+
+        return $ok;
     }
 
     public function incrementOrderCount($quantity = 1)
     {
-        $this->jumlah_dipesan += $quantity;
-        return $this->save();
+        static::whereKey($this->getKey())->increment('jumlah_dipesan', max(0, (int) $quantity));
+        $this->refresh();
+
+        return true;
     }
 
     public function refreshRating()

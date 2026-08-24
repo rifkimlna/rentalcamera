@@ -3,14 +3,6 @@ window.axios = axios;
 
 window.axios.defaults.headers.common['X-Requested-With'] = 'XMLHttpRequest';
 
-import $ from 'jquery';
-window.$ = window.jQuery = $;
-
-import toastr from 'toastr';
-window.toastr = toastr;
-toastr.options.positionClass = 'toast-top-right';
-toastr.options.timeOut = 3000;
-
 import Swal from 'sweetalert2';
 window.Swal = Swal;
 
@@ -29,12 +21,9 @@ document.addEventListener('DOMContentLoaded', function () {
             const iconMap = {
                 transaction: 'info',
                 payment: 'success',
-                shipping: 'info',
                 system: 'warning',
                 promotion: 'success',
             };
-
-            toastr[iconMap[type] || 'info'](message, title);
 
             Swal.fire({
                 icon: iconMap[type] || 'info',

@@ -6,72 +6,138 @@ use App\Http\Controllers\Controller;
 use App\Models\Transaksis;
 use App\Models\DetailTransaksis;
 use App\Models\User;
-use Illuminate\Support\Facades\Auth; // PASTIKAN INI ADA
+use Illuminate\Support\Facades\Auth;
 use App\Models\Produk;
-use App\Models\Pengiriman;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
-use App\Models\ActivityLog; // TAMBAHKAN INI
-use App\Models\PaymentMethod; // TAMBAHKAN INI
-use App\Models\PaymentLog; // TAMBAHKAN INI
-use App\Models\Ulasan; // TAMBAHKAN INI
-
-use Illuminate\Support\Str; // TAMBAHKAN INI
-use Carbon\Carbon; // TAMBAHKAN INI
+use App\Models\ActivityLog;
+use App\Models\PaymentMethod;
+use App\Models\PaymentLog;
+use App\Models\Ulasan;
+use App\Models\StudioBooking;
+use App\Models\LayananBooking;
+use Illuminate\Support\Str;
+use Carbon\Carbon;
+use Illuminate\Pagination\LengthAwarePaginator;
 
 class TransactionController extends Controller
 {
     public function index(Request $request)
     {
-        $query = Transaksis::with(['user', 'paymentMethod','detailTransaksis']);
-        
-        // Filter berdasarkan status transaksi
-        if ($request->filled('status_transaksi')) {
-            $query->where('status_transaksi', $request->status_transaksi);
-        }
-        
-        // Filter berdasarkan status pembayaran
-        if ($request->filled('status_pembayaran')) {
-            $query->where('status_pembayaran', $request->status_pembayaran);
-        }
-        
-        // Filter berdasarkan tanggal
-        if ($request->filled('start_date')) {
-            $query->whereDate('created_at', '>=', $request->start_date);
-        }
-        
-        if ($request->filled('end_date')) {
-            $query->whereDate('created_at', '<=', $request->end_date);
-        }
-        
-        // Filter berdasarkan pencarian
+        // Collect all transaction types
+        $allTransactions = collect();
+
+        // 1. Camera rentals (transaksis)
+        $rentalQuery = Transaksis::with(['user', 'paymentMethod', 'detailTransaksis']);
+        $this->applyFilters($request, $rentalQuery);
+        $rentals = $rentalQuery->orderBy('created_at', 'desc')->get()->map(function ($t) {
+            $t->tipe = 'sewa_kamera';
+            $t->tipe_label = 'Sewa Kamera';
+            $t->kode = $t->kode_transaksi;
+            $t->nama_pelanggan = $t->nama_customer;
+            $t->status_global = $t->status_transaksi;
+            $t->status_bayar = $t->status_pembayaran;
+            $t->detail_link = route('admin.transactions.show', $t->id);
+            return $t;
+        });
+        $allTransactions = $allTransactions->merge($rentals);
+
+        // 2. Studio bookings
+        $studioQuery = StudioBooking::with(['user', 'studio', 'paketStudio', 'paymentMethod']);
         if ($request->filled('search')) {
             $search = $request->search;
-            $query->where(function($q) use ($search) {
-                $q->where('kode_transaksi', 'like', "%{$search}%")
-                  ->orWhere('nama_customer', 'like', "%{$search}%")
-                  ->orWhere('email_customer', 'like', "%{$search}%")
-                  ->orWhere('telepon_customer', 'like', "%{$search}%");
+            $studioQuery->where(function ($q) use ($search) {
+                $q->whereHas('user', fn($u) => $u->where('nama', 'like', "%{$search}%"))
+                  ->orWhereHas('studio', fn($s) => $s->where('nama_studio', 'like', "%{$search}%"));
             });
         }
-        
-        $transactions = $query->orderBy('created_at', 'desc')->paginate(20);
-        
+        if ($request->filled('status_pembayaran')) {
+            $studioQuery->where('payment_status', $request->status_pembayaran);
+        }
+        if ($request->filled('start_date')) {
+            $studioQuery->whereDate('created_at', '>=', $request->start_date);
+        }
+        if ($request->filled('end_date')) {
+            $studioQuery->whereDate('created_at', '<=', $request->end_date);
+        }
+        $studios = $studioQuery->orderBy('created_at', 'desc')->get()->map(function ($t) {
+            $t->tipe = 'studio';
+            $t->tipe_label = 'Booking Studio';
+            $t->kode = 'STD-' . $t->id;
+            $t->nama_pelanggan = $t->user->nama ?? '-';
+            $t->status_global = $t->status;
+            $t->status_bayar = $t->payment_status;
+            $t->detail_link = route('admin.studio.bookings') . '?search=' . ($t->user->nama ?? '');
+            return $t;
+        });
+        $allTransactions = $allTransactions->merge($studios);
+
+        // 3. Layanan bookings
+        $layananQuery = LayananBooking::with(['user', 'layanan', 'paketLayanan', 'paymentMethod']);
+        if ($request->filled('search')) {
+            $search = $request->search;
+            $layananQuery->where(function ($q) use ($search) {
+                $q->whereHas('user', fn($u) => $u->where('nama', 'like', "%{$search}%"))
+                  ->orWhereHas('layanan', fn($l) => $l->where('nama_layanan', 'like', "%{$search}%"));
+            });
+        }
+        if ($request->filled('status_pembayaran')) {
+            $layananQuery->where('payment_status', $request->status_pembayaran);
+        }
+        if ($request->filled('start_date')) {
+            $layananQuery->whereDate('created_at', '>=', $request->start_date);
+        }
+        if ($request->filled('end_date')) {
+            $layananQuery->whereDate('created_at', '<=', $request->end_date);
+        }
+        $layanans = $layananQuery->orderBy('created_at', 'desc')->get()->map(function ($t) {
+            $t->tipe = 'layanan';
+            $t->tipe_label = 'Booking Layanan';
+            $t->kode = 'LYN-' . $t->id;
+            $t->nama_pelanggan = $t->user->nama ?? '-';
+            $t->status_global = $t->status;
+            $t->status_bayar = $t->payment_status;
+            $t->detail_link = route('admin.layanan.bookings') . '?search=' . ($t->user->nama ?? '');
+            return $t;
+        });
+        $allTransactions = $allTransactions->merge($layanans);
+
+        // Sort by created_at desc
+        $sorted = $allTransactions->sortByDesc('created_at');
+
+        // Paginate
+        $perPage = 20;
+        $page = $request->get('page', 1);
+        $offset = ($page - 1) * $perPage;
+        $paginated = new LengthAwarePaginator(
+            $sorted->slice($offset, $perPage)->values(),
+            $sorted->count(),
+            $perPage,
+            $page,
+            ['path' => $request->url(), 'query' => $request->query()]
+        );
+
         $statusTransaksi = [
+            'pending' => 'Pending',
+            'confirmed' => 'Confirmed',
+            'completed' => 'Selesai',
+            'cancelled' => 'Dibatalkan',
             'draft' => 'Draft',
             'menunggu_pembayaran' => 'Menunggu Pembayaran',
             'diproses' => 'Diproses',
             'dikonfirmasi' => 'Dikonfirmasi',
-            'dikemas' => 'Dikemas',
-            'dikirim' => 'Dikirim',
-            'dalam_perjalanan' => 'Dalam Perjalanan',
+
             'selesai' => 'Selesai',
             'dibatalkan' => 'Dibatalkan',
             'ditolak' => 'Ditolak',
         ];
-        
+
         $statusPembayaran = [
             'pending' => 'Pending',
+            'paid' => 'Lunas',
+            'failed' => 'Gagal',
+            'expired' => 'Kedaluwarsa',
+            'refunded' => 'Dikembalikan',
             'capture' => 'Capture',
             'settlement' => 'Settlement',
             'deny' => 'Deny',
@@ -82,8 +148,39 @@ class TransactionController extends Controller
             'partial_refund' => 'Partial Refund',
             'chargeback' => 'Chargeback',
         ];
-        
-        return view('admin.transactions.index', compact('transactions', 'statusTransaksi', 'statusPembayaran'));
+
+        $tipeList = [
+            'sewa_kamera' => 'Sewa Kamera',
+            'studio' => 'Booking Studio',
+            'layanan' => 'Booking Layanan',
+        ];
+
+        return view('admin.transactions.index', compact('paginated', 'statusTransaksi', 'statusPembayaran', 'tipeList'));
+    }
+
+    private function applyFilters($request, $query)
+    {
+        if ($request->filled('status_transaksi')) {
+            $query->where('status_transaksi', $request->status_transaksi);
+        }
+        if ($request->filled('status_pembayaran')) {
+            $query->where('status_pembayaran', $request->status_pembayaran);
+        }
+        if ($request->filled('start_date')) {
+            $query->whereDate('created_at', '>=', $request->start_date);
+        }
+        if ($request->filled('end_date')) {
+            $query->whereDate('created_at', '<=', $request->end_date);
+        }
+        if ($request->filled('search')) {
+            $search = $request->search;
+            $query->where(function ($q) use ($search) {
+                $q->where('kode_transaksi', 'like', "%{$search}%")
+                  ->orWhere('nama_customer', 'like', "%{$search}%")
+                  ->orWhere('email_customer', 'like', "%{$search}%")
+                  ->orWhere('telepon_customer', 'like', "%{$search}%");
+            });
+        }
     }
 
 
@@ -93,7 +190,6 @@ class TransactionController extends Controller
         'user',
         'paymentMethod',
         'detailTransaksis.produk',  // detailTransaksis bukan detailTransaksi
-        'pengiriman',
         'paymentLogs'
     ])->findOrFail($id);
     
@@ -104,9 +200,8 @@ public function printInvoice($id)
 {
     $transaction = Transaksis::with([
         'user',
-        'detailTransaksis.produk',  // GANTI detailTransaksi -> detailTransaksis
-        'pengiriman',
-        'paymentMethod'  // Tambahkan ini
+        'detailTransaksis.produk',
+        'paymentMethod'
     ])->findOrFail($id);
     
     return view('admin.transactions.invoice', compact('transaction'));
@@ -117,7 +212,7 @@ public function printInvoice($id)
         $transaction = Transaksis::findOrFail($id);
         
         $request->validate([
-            'status_transaksi' => 'required|in:draft,menunggu_pembayaran,diproses,dikonfirmasi,dikemas,dikirim,dalam_perjalanan,selesai,dibatalkan,ditolak',
+            'status_transaksi' => 'required|in:draft,menunggu_pembayaran,diproses,dikonfirmasi,siap_diambil,selesai,dibatalkan,ditolak',
             'catatan_admin' => 'nullable|string'
         ]);
         
@@ -137,13 +232,9 @@ public function printInvoice($id)
                 case 'dikonfirmasi':
                     $transaction->update(['confirmed_at' => now()]);
                     break;
-                case 'dikirim':
-                    $transaction->update(['shipped_at' => now()]);
-                    break;
                 case 'selesai':
                     $transaction->update(['completed_at' => now()]);
-                    // Return deposit if applicable
-                    $this->processDepositReturn($transaction);
+
                     break;
                 case 'dibatalkan':
                     $transaction->update(['cancelled_at' => now()]);
@@ -171,46 +262,7 @@ public function printInvoice($id)
         }
     }
 
-    public function updateShipping(Request $request, $id)
-    {
-        $transaction = Transaksis::findOrFail($id);
-        
-        $request->validate([
-            'kurir' => 'nullable|string|max:100',
-            'no_resi' => 'nullable|string|max:100',
-            'status' => 'required|in:pending,picked_up,in_transit,delivered,returned,cancelled',
-            'estimated_delivery' => 'nullable|date',
-            'catatan' => 'nullable|string'
-        ]);
-        
-        $pengiriman = Pengiriman::where('transaksi_id', $transaction->id)->first();
-        
-        if (!$pengiriman) {
-            $pengiriman = new Pengiriman();
-            $pengiriman->transaksi_id = $transaction->id;
-        }
-        
-        $pengiriman->fill($request->only([
-            'kurir', 'no_resi', 'status', 'estimated_delivery', 'catatan'
-        ]));
-        
-        if ($request->status === 'delivered') {
-            $pengiriman->actual_delivery = now();
-        }
-        
-        $pengiriman->save();
-        
-        // If shipped, update transaction status
-        if ($request->status === 'in_transit' && $transaction->status_transaksi !== 'dikirim') {
-            $transaction->update([
-                'status_transaksi' => 'dikirim',
-                'shipped_at' => now()
-            ]);
-        }
-        
-        return redirect()->back()
-            ->with('success', 'Informasi pengiriman berhasil diperbarui.');
-    }
+    
 
 
 
@@ -250,8 +302,8 @@ public function createManual()
             'user_id' => 'required|exists:users,id',
             'tanggal_sewa' => 'required|date',
             'tanggal_kembali' => 'required|date|after:tanggal_sewa',
-            'metode_pengambilan' => 'required|in:pickup,delivery,both',
-            'metode_pengembalian' => 'required|in:return,pickup,both',
+            'metode_pengambilan' => 'required|in:pickup',
+            'metode_pengembalian' => 'required|in:return',
             'catatan' => 'nullable|string',
             'products' => 'required|array|min:1',
             'products.*.id' => 'required|exists:produk,id',
@@ -280,7 +332,7 @@ public function createManual()
         $transaction->uuid = Str::uuid();
         $transaction->user_id = $validated['user_id'];
         $transaction->nama_customer = $user->nama;
-        $transaction->telepon_customer = $user->telepon;
+        $transaction->telepon_customer = $user->telepon ?? '';
         $transaction->email_customer = $user->email;
         $transaction->tanggal_pengambilan = $tanggalSewa;
         $transaction->tanggal_pengembalian = $tanggalKembali;
@@ -291,7 +343,6 @@ public function createManual()
         $transaction->payment_method_id = $validated['payment_method_id'];
         $transaction->status_pembayaran = $validated['payment_status'];
         $transaction->status_transaksi = 'menunggu_pembayaran';
-        $transaction->status_deposit = 'pending';
         
         // Set payment details if provided
         if ($request->filled('bank')) $transaction->bank = $validated['bank'];
@@ -301,7 +352,6 @@ public function createManual()
         
         // Calculate totals
         $subtotal = 0;
-        $depositAmount = 0;
         
         foreach ($validated['products'] as $productData) {
             $product = Produk::find($productData['id']);
@@ -315,9 +365,6 @@ public function createManual()
             $productSubtotal = $product->harga_per_hari * $quantity * $lamaSewa;
             $subtotal += $productSubtotal;
             
-            // Calculate deposit (20% of subtotal)
-            $depositAmount += $productSubtotal * 0.2;
-            
             // Update product stock
             $product->stok_dipinjam += $quantity;
             $product->stok_tersedia = $product->stok_total - $product->stok_dipinjam - $product->stok_rusak;
@@ -325,7 +372,6 @@ public function createManual()
         }
         
         // Calculate other costs
-        $shippingCost = $validated['metode_pengambilan'] === 'delivery' ? 15000 : 0;
         $insuranceCost = $subtotal * 0.005; // 0.5% insurance
         $adminFee = 0;
         
@@ -335,16 +381,14 @@ public function createManual()
             $adminFee = ($subtotal * $paymentMethod->fee_percentage / 100) + $paymentMethod->fee_flat;
         }
         
-        $totalSewa = $subtotal + $shippingCost + $insuranceCost;
+        $totalSewa = $subtotal + $insuranceCost;
         $grandTotal = $totalSewa + $adminFee;
         
         // Set transaction amounts
         $transaction->subtotal = $subtotal;
-        $transaction->biaya_pengiriman = $shippingCost;
         $transaction->biaya_asuransi = $insuranceCost;
         $transaction->biaya_lainnya = 0;
         $transaction->total_sewa = $totalSewa;
-        $transaction->deposit_amount = $depositAmount;
         $transaction->admin_fee = $adminFee;
         $transaction->grand_total = $grandTotal;
         
@@ -374,7 +418,6 @@ public function createManual()
             $detail->jumlah = $quantity;
             $detail->lama_sewa = $lamaSewa;
             $detail->subtotal = $product->harga_per_hari * $quantity * $lamaSewa;
-            $detail->deposit_amount = $detail->subtotal * 0.2;
             $detail->save();
         }
         
@@ -598,33 +641,9 @@ public function createManual()
         return redirect()->back()->with('success', 'Balasan ulasan berhasil dikirim.');
     }
 
-    private function processDepositReturn($transaction)
-    {
-        if ($transaction->deposit_amount > 0 && $transaction->status_deposit === 'dibayar') {
-            // Update deposit status
-            $transaction->update(['status_deposit' => 'dikembalikan']);
-            
-            // Log deposit return transaction
-            \App\Models\DepositTransaction::create([
-                'user_id' => $transaction->user_id,
-                'transaksi_id' => $transaction->id,
-                'kode_transaksi' => 'DEP' . date('Ymd') . rand(1000, 9999),
-                'type' => 'refund',
-                'amount' => $transaction->deposit_amount,
-                'previous_balance' => $transaction->user->saldo_deposit,
-                'current_balance' => $transaction->user->saldo_deposit + $transaction->deposit_amount,
-                'status' => 'success',
-                'description' => 'Pengembalian deposit untuk transaksi ' . $transaction->kode_transaksi,
-            ]);
-            
-            // Update user deposit balance
-            $transaction->user->increment('saldo_deposit', $transaction->deposit_amount);
-        }
-    }
-
     private function restoreProductStock($transaction)
     {
-        foreach ($transaction->detailTransaksi as $detail) {
+        foreach ($transaction->detailTransaksis as $detail) {
             if ($detail->produk_id) {
                 $product = Produk::find($detail->produk_id);
                 if ($product) {

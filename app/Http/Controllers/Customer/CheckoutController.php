@@ -6,14 +6,18 @@ use App\Http\Controllers\Controller;
 use App\Models\Keranjang;
 
 use App\Models\DetailTransaksis;
-use App\Models\Pengiriman;
 use App\Models\Voucher;
 use App\Models\VoucherUsage;
 use App\Models\PaymentMethod;
 use App\Models\ActivityLog;
-use App\Models\PaymentLog;
 use App\Models\Transaksis;
 use App\Models\Produk;
+use App\Models\Studio;
+use App\Models\StudioBooking;
+use App\Models\PaketStudio;
+use App\Models\Layanan;
+use App\Models\LayananBooking;
+use App\Models\PaketLayanan;
 use App\Services\MidtransService;
 use Illuminate\Http\Request; // Tambahkan ini
 use Illuminate\Support\Facades\Auth;
@@ -39,11 +43,24 @@ class CheckoutController extends Controller
         /** @var \App\Models\User $user */
         $user = Auth::user();
         
-        // Cek apakah dari direct rent (Sewa tanpa kart)
+        // Cek apakah dari direct rent, direct studio, atau direct layanan
         $directRent = session('direct_rent');
+        $directStudio = session('direct_studio');
+        $directLayanan = session('direct_layanan');
         $keranjangItems = collect();
+        $isStudioBooking = false;
+        $isLayananBooking = false;
+        $bookingData = null;
 
-        if ($directRent) {
+        if ($directStudio) {
+            $isStudioBooking = true;
+            $bookingData = $directStudio;
+            $subtotal = $directStudio['total_harga'];
+        } elseif ($directLayanan) {
+            $isLayananBooking = true;
+            $bookingData = $directLayanan;
+            $subtotal = $directLayanan['total_harga'];
+        } elseif ($directRent) {
             $product = Produk::find($directRent['product_id']);
             if ($product) {
                 $item = new \stdClass();
@@ -53,6 +70,7 @@ class CheckoutController extends Controller
                 $item->jumlah = $directRent['jumlah'];
                 $item->tanggal_sewa = $directRent['tanggal_sewa'];
                 $item->tanggal_kembali = $directRent['tanggal_kembali'];
+                $item->jam_mulai = $directRent['jam_mulai'] ?? '08:00';
                 $item->harga_per_hari = $product->harga_per_hari;
                 $item->catatan = null;
                 $keranjangItems = collect([$item]);
@@ -62,43 +80,46 @@ class CheckoutController extends Controller
                 ->where('user_id', $user->id)
                 ->get();
         }
-        
-        if ($keranjangItems->isEmpty()) {
+
+        if (!$isStudioBooking && !$isLayananBooking && $keranjangItems->isEmpty()) {
             return redirect()->route('customer.cart.index')
                 ->with('error', 'Keranjang kosong. Silakan tambah produk terlebih dahulu.');
         }
-        
-        // Validasi tanggal sewa
-        foreach ($keranjangItems as $item) {
-            if ($item->tanggal_sewa < now()->toDateString()) {
-                return redirect()->route('customer.cart.index')
-                    ->with('error', "Tanggal sewa untuk {$item->produk->nama_produk} tidak valid.");
+
+        if (!$isStudioBooking && !$isLayananBooking) {
+            // Validasi tanggal sewa
+            foreach ($keranjangItems as $item) {
+                if ($item->tanggal_sewa < now()->toDateString()) {
+                    return redirect()->route('customer.cart.index')
+                        ->with('error', "Tanggal sewa untuk {$item->produk->nama_produk} tidak valid.");
+                }
+                
+                if ($item->lama_sewa < $item->produk->minimum_sewa) {
+                    return redirect()->route('customer.cart.index')
+                        ->with('error', "Minimal sewa untuk {$item->produk->nama_produk} adalah {$item->produk->minimum_sewa} hari.");
+                }
+                
+                if ($item->lama_sewa > $item->produk->maximum_sewa) {
+                    return redirect()->route('customer.cart.index')
+                        ->with('error', "Maksimal sewa untuk {$item->produk->nama_produk} adalah {$item->produk->maximum_sewa} hari.");
+                }
+                
+                // Cek stok tersedia
+                if ($item->produk->stok_tersedia < $item->jumlah) {
+                    return redirect()->route('customer.cart.index')
+                        ->with('error', "Stok {$item->produk->nama_produk} tidak mencukupi. Stok tersedia: {$item->produk->stok_tersedia}");
+                }
             }
-            
-            if ($item->lama_sewa < $item->produk->minimum_sewa) {
-                return redirect()->route('customer.cart.index')
-                    ->with('error', "Minimal sewa untuk {$item->produk->nama_produk} adalah {$item->produk->minimum_sewa} hari.");
-            }
-            
-            if ($item->lama_sewa > $item->produk->maximum_sewa) {
-                return redirect()->route('customer.cart.index')
-                    ->with('error', "Maksimal sewa untuk {$item->produk->nama_produk} adalah {$item->produk->maximum_sewa} hari.");
-            }
-            
-            // Cek stok tersedia
-            if ($item->produk->stok_tersedia < $item->jumlah) {
-                return redirect()->route('customer.cart.index')
-                    ->with('error', "Stok {$item->produk->nama_produk} tidak mencukupi. Stok tersedia: {$item->produk->stok_tersedia}");
-            }
+
+            // Hitung subtotal untuk produk
+            $subtotal = $keranjangItems->sum(function ($item) {
+                return $item->produk->harga_per_hari * $item->lama_sewa * $item->jumlah;
+            });
         }
         
-        // Hitung subtotal
-        $subtotal = $keranjangItems->sum(function ($item) {
-            return $item->produk->harga_per_hari * $item->lama_sewa * $item->jumlah;
-        });
-        
-        // Ambil metode pembayaran yang aktif
+        // Ambil metode pembayaran yang aktif (kecuali COD)
         $paymentMethods = PaymentMethod::where('is_active', true)
+            ->where('type', '!=', 'cod')
             ->orderBy('sort_order')
             ->get();
         
@@ -128,26 +149,15 @@ class CheckoutController extends Controller
             'kode_pos' => $user->kode_pos,
         ];
         
-        // Settings untuk biaya
-        $shippingFee = config('settings.shipping_fee', 20000);
-        $insurancePercentage = config('settings.insurance_percentage', 1);
-        $depositPercentage = config('settings.deposit_percentage', 20);
-        
-        // Hitung biaya asuransi
-        $insuranceFee = ($subtotal * $insurancePercentage) / 100;
-        
-        // Hitung deposit
-        $depositAmount = ($subtotal * $depositPercentage) / 100;
-        
         return view('customer.checkout.index', compact(
             'keranjangItems',
             'subtotal',
             'paymentMethods',
             'vouchers',
             'userAddress',
-            'shippingFee',
-            'insuranceFee',
-            'depositAmount'
+            'isStudioBooking',
+            'isLayananBooking',
+            'bookingData'
         ));
     }
 
@@ -159,22 +169,221 @@ class CheckoutController extends Controller
         /** @var \App\Models\User $user */
         $user = Auth::user();
         
-        $request->validate([
-            'payment_method_id' => 'required|exists:payment_methods,id',
-            'metode_pengambilan' => 'required|in:pickup,delivery,both',
-            'metode_pengembalian' => 'required|in:return,pickup,both',
-            'alamat_pengiriman' => 'required_if:metode_pengambilan,delivery,both|string',
-            'kota_pengiriman' => 'required_if:metode_pengambilan,delivery,both|string',
-            'provinsi_pengiriman' => 'required_if:metode_pengambilan,delivery,both|string',
-            'kode_pos_pengiriman' => 'required_if:metode_pengambilan,delivery,both|string',
-            'catatan' => 'nullable|string',
-            'voucher_code' => 'nullable|string',
-            'agree_terms' => 'required|accepted',
-        ]);
+        $directStudio = session('direct_studio');
+        $directLayanan = session('direct_layanan');
+
+        if ($directStudio || $directLayanan) {
+            $request->validate([
+                'payment_method_id' => 'required|exists:payment_methods,id',
+                'catatan' => 'nullable|string',
+                'voucher_code' => 'nullable|string',
+                'agree_terms' => 'required|accepted',
+            ]);
+        } else {
+            $request->validate([
+                'payment_method_id' => 'required|exists:payment_methods,id',
+
+                'catatan' => 'nullable|string',
+                'voucher_code' => 'nullable|string',
+                'agree_terms' => 'required|accepted',
+            ]);
+        }
         
         DB::beginTransaction();
         
         try {
+            if ($directLayanan) {
+                // ===== LAYANAN BOOKING FLOW =====
+                $layanan = Layanan::findOrFail($directLayanan['layanan_id']);
+                $paymentMethod = PaymentMethod::findOrFail($request->payment_method_id);
+
+                // Recheck bentrok slot saat checkout (data session bisa basi karena antre pembayaran)
+                $jamMulaiCek = $directLayanan['jam_mulai'];
+                $jamSelesaiCek = $directLayanan['jam_selesai'];
+                $bentrok = LayananBooking::where('layanan_id', $layanan->id)
+                    ->where('tanggal_booking', $directLayanan['tanggal_booking'])
+                    ->whereIn('status', ['pending', 'confirmed'])
+                    ->where(function ($q) use ($jamMulaiCek, $jamSelesaiCek) {
+                        $q->whereBetween('jam_mulai', [$jamMulaiCek, $jamSelesaiCek])
+                          ->orWhereBetween('jam_selesai', [$jamMulaiCek, $jamSelesaiCek])
+                          ->orWhere(function ($q2) use ($jamMulaiCek, $jamSelesaiCek) {
+                              $q2->where('jam_mulai', '<=', $jamMulaiCek)
+                                 ->where('jam_selesai', '>=', $jamSelesaiCek);
+                          });
+                    })
+                    ->exists();
+
+                if ($bentrok) {
+                    throw new \Exception('Slot layanan sudah dibooking orang lain pada jam tersebut. Silakan pilih jam lain.');
+                }
+
+                $subtotal = $directLayanan['total_harga'];
+
+                $diskon = 0;
+                $kodeVoucher = null;
+
+                if ($request->filled('voucher_code')) {
+                    $voucher = Voucher::where('kode_voucher', $request->voucher_code)
+                        ->where('is_active', true)
+                        ->where('start_date', '<=', now())
+                        ->where('end_date', '>=', now())
+                        ->where(function($q) use ($user) {
+                            $q->whereNull('user_id')->orWhere('user_id', $user->id);
+                        })
+                        ->where(function($q) use ($subtotal) {
+                            $q->whereNull('min_purchase')->orWhere('min_purchase', '<=', $subtotal);
+                        })
+                        ->where(function($q) {
+                            $q->whereNull('kuota')->orWhereRaw('kuota_terpakai < kuota');
+                        })
+                        ->first();
+
+                    if ($voucher) {
+                        // Clamp: diskon tidak boleh melebihi subtotal
+                        $diskon = min($voucher->calculateDiscount($subtotal), $subtotal);
+                        $kodeVoucher = $voucher->kode_voucher;
+                        // Konsumsi kuota atomik (gagal jika habis karena race)
+                        if (!$voucher->consumeQuota()) {
+                            throw new \Exception('Kuota voucher sudah habis.');
+                        }
+                    }
+                }
+
+                $adminFee = $paymentMethod->calculateFee(max(0, $subtotal - $diskon));
+                $grandTotal = max(0, $subtotal - $diskon) + $adminFee;
+
+                $booking = LayananBooking::create([
+                    'user_id' => $user->id,
+                    'layanan_id' => $layanan->id,
+                    'paket_layanan_id' => $directLayanan['tipe_booking'] === 'paket' ? $directLayanan['paket']['id'] : null,
+                    'tipe_booking' => $directLayanan['tipe_booking'],
+                    'tanggal_booking' => $directLayanan['tanggal_booking'],
+                    'jam_mulai' => $directLayanan['jam_mulai'],
+                    'jam_selesai' => $directLayanan['jam_selesai'],
+                    'durasi_jam' => $directLayanan['durasi_jam'],
+                    'total_harga' => $subtotal,
+                    'payment_method_id' => $paymentMethod->id,
+                    'admin_fee' => $adminFee,
+                    'grand_total' => $grandTotal,
+                    'catatan' => $request->catatan,
+                    'kode_voucher' => $kodeVoucher,
+                    'diskon_voucher' => $diskon,
+                    'payment_status' => 'pending',
+                    'status' => 'pending',
+                ]);
+
+                session()->forget('direct_layanan');
+
+                DB::commit();
+
+                \App\Models\Notification::sendToAdmins('transaction',
+                    'Booking Layanan Baru',
+                    $user->nama . ' booking layanan ' . $layanan->nama_layanan . ' - Rp ' . number_format($grandTotal, 0, ',', '.'),
+                    ['booking_id' => $booking->id, 'type' => 'layanan']
+                );
+
+                return redirect()->route('customer.layanan.payment', $booking->id)
+                    ->with('success', 'Booking layanan berhasil. Silakan lakukan pembayaran.');
+
+            }
+
+            if ($directStudio) {
+                // ===== STUDIO BOOKING FLOW =====
+                $studio = Studio::findOrFail($directStudio['studio_id']);
+                $paymentMethod = PaymentMethod::findOrFail($request->payment_method_id);
+
+                // Recheck bentrok slot saat checkout (data session bisa basi karena antre pembayaran)
+                $jamMulaiCek = $directStudio['jam_mulai'];
+                $jamSelesaiCek = $directStudio['jam_selesai'];
+                $bentrok = StudioBooking::where('studio_id', $studio->id)
+                    ->where('tanggal_booking', $directStudio['tanggal_booking'])
+                    ->whereIn('status', ['pending', 'confirmed'])
+                    ->where(function ($q) use ($jamMulaiCek, $jamSelesaiCek) {
+                        $q->whereBetween('jam_mulai', [$jamMulaiCek, $jamSelesaiCek])
+                          ->orWhereBetween('jam_selesai', [$jamMulaiCek, $jamSelesaiCek])
+                          ->orWhere(function ($q2) use ($jamMulaiCek, $jamSelesaiCek) {
+                              $q2->where('jam_mulai', '<=', $jamMulaiCek)
+                                 ->where('jam_selesai', '>=', $jamSelesaiCek);
+                          });
+                    })
+                    ->exists();
+
+                if ($bentrok) {
+                    throw new \Exception('Slot studio sudah dibooking orang lain pada jam tersebut. Silakan pilih jam lain.');
+                }
+
+                $subtotal = $directStudio['total_harga'];
+
+                // Hitung diskon voucher
+                $diskon = 0;
+                $kodeVoucher = null;
+
+                if ($request->filled('voucher_code')) {
+                    $voucher = Voucher::where('kode_voucher', $request->voucher_code)
+                        ->where('is_active', true)
+                        ->where('start_date', '<=', now())
+                        ->where('end_date', '>=', now())
+                        ->where(function($q) use ($user) {
+                            $q->whereNull('user_id')->orWhere('user_id', $user->id);
+                        })
+                        ->where(function($q) use ($subtotal) {
+                            $q->whereNull('min_purchase')->orWhere('min_purchase', '<=', $subtotal);
+                        })
+                        ->where(function($q) {
+                            $q->whereNull('kuota')->orWhereRaw('kuota_terpakai < kuota');
+                        })
+                        ->first();
+
+                    if ($voucher) {
+                        // Clamp: diskon tidak boleh melebihi subtotal
+                        $diskon = min($voucher->calculateDiscount($subtotal), $subtotal);
+                        $kodeVoucher = $voucher->kode_voucher;
+                        // Konsumsi kuota atomik (gagal jika habis karena race)
+                        if (!$voucher->consumeQuota()) {
+                            throw new \Exception('Kuota voucher sudah habis.');
+                        }
+                    }
+                }
+
+                $adminFee = $paymentMethod->calculateFee(max(0, $subtotal - $diskon));
+                $grandTotal = max(0, $subtotal - $diskon) + $adminFee;
+
+                $booking = StudioBooking::create([
+                    'user_id' => $user->id,
+                    'studio_id' => $studio->id,
+                    'paket_studio_id' => $directStudio['tipe_booking'] === 'paket' ? $directStudio['paket']['id'] : null,
+                    'tipe_booking' => $directStudio['tipe_booking'],
+                    'tanggal_booking' => $directStudio['tanggal_booking'],
+                    'jam_mulai' => $directStudio['jam_mulai'],
+                    'jam_selesai' => $directStudio['jam_selesai'],
+                    'durasi_jam' => $directStudio['durasi_jam'],
+                    'total_harga' => $subtotal,
+                    'payment_method_id' => $paymentMethod->id,
+                    'admin_fee' => $adminFee,
+                    'grand_total' => $grandTotal,
+                    'catatan' => $request->catatan,
+                    'kode_voucher' => $kodeVoucher,
+                    'diskon_voucher' => $diskon,
+                    'payment_status' => 'pending',
+                    'status' => 'pending',
+                ]);
+
+                session()->forget('direct_studio');
+
+                DB::commit();
+
+                \App\Models\Notification::sendToAdmins('transaction',
+                    'Booking Studio Baru',
+                    $user->nama . ' booking studio ' . $studio->nama_studio . ' - Rp ' . number_format($grandTotal, 0, ',', '.'),
+                    ['booking_id' => $booking->id, 'type' => 'studio']
+                );
+
+                return redirect()->route('customer.studio.payment', $booking->id)
+                    ->with('success', 'Booking studio berhasil. Silakan lakukan pembayaran.');
+
+            }
+            
+            // ===== PRODUCT RENTAL FLOW =====
             // Cek apakah dari direct rent
             $directRent = session('direct_rent');
             $keranjangItems = collect();
@@ -194,6 +403,7 @@ class CheckoutController extends Controller
                 $item->jumlah = $directRent['jumlah'];
                 $item->tanggal_sewa = $directRent['tanggal_sewa'];
                 $item->tanggal_kembali = $directRent['tanggal_kembali'];
+                $item->jam_mulai = $directRent['jam_mulai'] ?? '08:00';
                 $item->harga_per_hari = $product->harga_per_hari;
                 $item->catatan = null;
                 $keranjangItems = collect([$item]);
@@ -254,8 +464,6 @@ class CheckoutController extends Controller
                         }
                     } elseif ($voucher->type === 'fixed') {
                         $diskon = $voucher->value;
-                    } elseif ($voucher->type === 'shipping') {
-                        // Diskon pengiriman, akan dihitung nanti
                     }
                 }
             }
@@ -265,21 +473,10 @@ class CheckoutController extends Controller
             $tanggalPengembalian = $keranjangItems->max('tanggal_kembali');
             $tanggalPengambilan = $tanggalPengambilan ? \Carbon\Carbon::parse($tanggalPengambilan)->format('Y-m-d') : now()->format('Y-m-d');
             $tanggalPengembalian = $tanggalPengembalian ? \Carbon\Carbon::parse($tanggalPengembalian)->format('Y-m-d') : now()->format('Y-m-d');
-            // Hitung biaya lainnya
-            $shippingFee = ($request->metode_pengambilan === 'pickup') ? 0 : config('settings.shipping_fee', 20000);
-            $insurancePercentage = config('settings.insurance_percentage', 1);
-            $insuranceFee = ($subtotal * $insurancePercentage) / 100;
-            $depositPercentage = config('settings.deposit_percentage', 20);
-            $depositAmount = ($subtotal * $depositPercentage) / 100;
-            
-            // Jika voucher tipe shipping
-            if ($voucherId && $voucher->type === 'shipping') {
-                $shippingFee -= $voucher->value;
-                if ($shippingFee < 0) $shippingFee = 0;
-            }
-            
-            // Hitung total sewa (sebelum deposit)
-            $totalSewa = $subtotal - $diskon + $shippingFee + $insuranceFee;
+            $jamMulai = $keranjangItems->min('jam_mulai') ?? '08:00';
+            // Hitung total sewa (clamp: diskon tidak boleh melebihi subtotal)
+            $diskon = min($diskon, $subtotal);
+            $totalSewa = max(0, $subtotal - $diskon);
             
             // Biaya admin berdasarkan metode pembayaran
             $paymentMethod = PaymentMethod::find($request->payment_method_id);
@@ -295,18 +492,11 @@ class CheckoutController extends Controller
                 'nama_customer' => $user->nama,
                 'telepon_customer' => $user->telepon,
                 'email_customer' => $user->email,
-                'alamat_pengiriman' => $request->alamat_pengiriman,
-                'kota_pengiriman' => $request->kota_pengiriman,
-                'provinsi_pengiriman' => $request->provinsi_pengiriman,
-                'kode_pos_pengiriman' => $request->kode_pos_pengiriman,
                 'subtotal' => $subtotal,
                 'diskon' => $diskon,
                 'kode_voucher' => $request->voucher_code,
-                'biaya_pengiriman' => $shippingFee,
-                'biaya_asuransi' => $insuranceFee,
                 'biaya_lainnya' => $adminFee,
                 'total_sewa' => $totalSewa,
-                'deposit_amount' => $depositAmount,
                 'admin_fee' => $adminFee,
                 'grand_total' => $grandTotal,
                 'payment_method_id' => $request->payment_method_id,
@@ -314,20 +504,18 @@ class CheckoutController extends Controller
                 'bank' => $paymentMethod->bank_code,
                 'status_pembayaran' => 'pending',
                 'status_transaksi' => 'menunggu_pembayaran',
-                'status_deposit' => 'pending',
-                'tanggal_pengambilan' => $tanggalPengambilan . ' 08:00:00',
+                'tanggal_pengambilan' => $tanggalPengambilan . ' ' . $jamMulai . ':00',
                 'tanggal_pengembalian' => $tanggalPengembalian . ' 20:00:00',
                 'lama_sewa' => $lamaSewa,
-                'metode_pengambilan' => $request->metode_pengambilan,
-                'metode_pengembalian' => $request->metode_pengembalian,
+                'metode_pengambilan' => 'pickup',
+                'metode_pengembalian' => 'return',
                 'catatan' => $request->catatan,
-                'payment_expired_at' => now()->addHours(config('settings.payment_expiry_hours', 24)),
+                'payment_expired_at' => now()->addMinutes((int) config('midtrans.expiry_duration', 1440)),
             ]);
             
             // Buat detail transaksi & kurangi stok
             foreach ($keranjangItems as $item) {
                 $hargaProduk = $item->produk->harga_per_hari * $item->lama_sewa * $item->jumlah;
-                $depositItem = ($hargaProduk * $depositPercentage) / 100;
                 
                 DetailTransaksis::create([
                     'transaksi_id' => $transaksi->id,
@@ -338,38 +526,29 @@ class CheckoutController extends Controller
                     'jumlah' => $item->jumlah,
                     'lama_sewa' => $item->lama_sewa,
                     'subtotal' => $hargaProduk,
-                    'deposit_amount' => $depositItem,
                     'catatan' => $item->catatan,
                 ]);
                 
-                // Kurangi stok produk
-                $item->produk->updateStock('rent', $item->jumlah);
+                // Kurangi stok produk (atomik; gagal jika stok habis karena race)
+                if (!$item->produk->updateStock('rent', $item->jumlah)) {
+                    throw new \Exception("Stok {$item->produk->nama_produk} habis saat proses checkout.");
+                }
             }
             
-            // Buat record pengiriman jika diperlukan
-            if (in_array($request->metode_pengambilan, ['delivery', 'both'])) {
-                Pengiriman::create([
-                    'transaksi_id' => $transaksi->id,
-                    'metode' => 'delivery',
-                    'biaya' => $shippingFee,
-                    'alamat_asal' => config('settings.company_address', 'Jl. Contoh No. 123, Jakarta'),
-                    'alamat_tujuan' => $request->alamat_pengiriman,
-                    'status' => 'pending',
-                    'estimated_delivery' => $tanggalPengambilan . ' 08:00:00',
-                ]);
-            }
             
             // Update voucher usage jika ada
             if ($voucherId) {
+                // Konsumsi kuota atomik lebih dulu (gagal jika sudah habis karena race)
+                if (!$voucher->consumeQuota()) {
+                    throw new \Exception('Kuota voucher sudah habis.');
+                }
+
                 VoucherUsage::create([
                     'voucher_id' => $voucherId,
                     'user_id' => $user->id,
                     'transaksi_id' => $transaksi->id,
                     'discount_amount' => $diskon,
                 ]);
-                
-                // Update kuota voucher
-                $voucher->increment('kuota_terpakai');
             }
             
             // Hapus item dari keranjang (atau dari session untuk direct rent)
@@ -450,75 +629,25 @@ class CheckoutController extends Controller
     /**
      * Handle Midtrans payment.
      */
-    public function midtransCallback(Request $request) // Perbaiki tipe parameter
+    public function midtransCallback(Request $request)
     {
         $serverKey = config('midtrans.server_key');
-        $hashed = hash("sha512", 
-            $request->order_id . 
-            $request->status_code . 
-            $request->gross_amount . 
+        $hashed = hash("sha512",
+            $request->order_id .
+            $request->status_code .
+            $request->gross_amount .
             $serverKey
         );
-        
+
         if ($hashed != $request->signature_key) {
             return response()->json(['message' => 'Invalid signature'], 403);
         }
-        
-        $transaksi = Transaksis::where('midtrans_order_id', $request->order_id)->first();
-        
-        if (!$transaksi) {
-            return response()->json(['message' => 'Transaction not found'], 404);
-        }
-        
-        DB::beginTransaction();
-        
-        try {
-            switch ($request->transaction_status) {
-                case 'capture':
-                case 'settlement':
-                    $transaksi->update([
-                        'status_pembayaran' => 'settlement',
-                        'status_transaksi' => 'dikonfirmasi',
-                        'paid_at' => now(),
-                        'confirmed_at' => now(),
-                    ]);
 
-                    \App\Models\Notification::sendToAdmins('payment',
-                        'Pembayaran Kamera Lunas',
-                        ($transaksi->user->nama ?? 'User') . ' telah membayar transaksi ' . $transaksi->kode_transaksi,
-                        ['transaksi_id' => $transaksi->id, 'type' => 'camera']
-                    );
-                    break;
-                    
-                case 'pending':
-                    $transaksi->update([
-                        'status_pembayaran' => 'pending',
-                        'status_transaksi' => 'menunggu_pembayaran',
-                    ]);
-                    break;
-                    
-                case 'deny':
-                case 'cancel':
-                case 'expire':
-                case 'failure':
-                    $transaksi->update([
-                        'status_pembayaran' => $request->transaction_status,
-                        'status_transaksi' => 'dibatalkan',
-                        'cancelled_at' => now(),
-                    ]);
-                    break;
-            }
-            
-            // Stok sudah dikurangi saat checkout process
-            
-            DB::commit();
-            
-            return response()->json(['message' => 'Callback processed']);
-            
-        } catch (\Exception $e) {
-            DB::rollBack();
-            return response()->json(['message' => 'Error processing callback: ' . $e->getMessage()], 500);
-        }
+        $processed = $this->midtransService->handleNotification($request);
+
+        return response()->json([
+            'message' => $processed ? 'Callback processed' : 'Transaction not found',
+        ], $processed ? 200 : 404);
     }
 
     /**
@@ -648,46 +777,6 @@ class CheckoutController extends Controller
     }
 
     /**
-     * Calculate shipping cost.
-     */
-    public function calculateShipping(Request $request)
-    {
-        $request->validate([
-            'kota' => 'required|string',
-            'provinsi' => 'required|string',
-        ]);
-        
-        $baseFee = config('settings.shipping_fee', 20000);
-        $expressFee = config('settings.express_shipping_cost', 30000);
-        
-        // Di aplikasi nyata, Anda akan menghitung berdasarkan jarak atau kurir
-        // Ini hanya contoh sederhana
-        $shippingOptions = [
-            [
-                'name' => 'Reguler (2-3 hari)',
-                'cost' => $baseFee,
-                'code' => 'reguler',
-            ],
-            [
-                'name' => 'Express (1 hari)',
-                'cost' => $expressFee,
-                'code' => 'express',
-            ],
-            [
-                'name' => 'Same Day Delivery',
-                'cost' => $expressFee * 1.5,
-                'code' => 'same_day',
-                'note' => 'Hanya tersedia jika order sebelum ' . config('settings.same_day_delivery_cutoff', '14:00'),
-            ],
-        ];
-        
-        return response()->json([
-            'success' => true,
-            'options' => $shippingOptions,
-        ]);
-    }
-
-    /**
      * Check payment status via AJAX.
      */
     public function checkStatus($id)
@@ -721,88 +810,12 @@ class CheckoutController extends Controller
             return response()->json(['message' => 'Invalid signature'], 403);
         }
 
-        $transaksi = Transaksis::where('midtrans_order_id', $request->order_id)->first();
+        $processed = $this->midtransService->handleNotification($request);
 
-        if (!$transaksi) {
-            Log::error('Transaction not found for Midtrans notification', ['order_id' => $request->order_id]);
+        if (!$processed) {
             return response()->json(['message' => 'Transaction not found'], 404);
         }
 
-        DB::beginTransaction();
-
-        try {
-            switch ($request->transaction_status) {
-                case 'capture':
-                case 'settlement':
-                    $transaksi->update([
-                        'status_pembayaran' => 'settlement',
-                        'status_transaksi' => 'dikonfirmasi',
-                        'paid_at' => now(),
-                        'confirmed_at' => now(),
-                    ]);
-
-                    foreach ($transaksi->detailTransaksis as $detail) {
-                        if ($detail->produk) {
-                            $detail->produk->update([
-                                'stok_dipinjam' => $detail->produk->stok_dipinjam + $detail->jumlah,
-                                'stok_tersedia' => $detail->produk->stok_total -
-                                                  ($detail->produk->stok_dipinjam + $detail->jumlah) -
-                                                  $detail->produk->stok_rusak,
-                            ]);
-                        }
-                    }
-
-                    \App\Models\Notification::sendToAdmins('payment',
-                        'Pembayaran Kamera Lunas',
-                        ($transaksi->user->nama ?? 'User') . ' telah membayar transaksi ' . $transaksi->kode_transaksi . ' sebesar Rp ' . number_format($transaksi->grand_total, 0, ',', '.'),
-                        ['transaksi_id' => $transaksi->id, 'type' => 'camera']
-                    );
-                    break;
-
-                case 'pending':
-                    $transaksi->update([
-                        'status_pembayaran' => 'pending',
-                        'status_transaksi' => 'menunggu_pembayaran',
-                    ]);
-                    break;
-
-                case 'deny':
-                case 'cancel':
-                case 'expire':
-                case 'failure':
-                    $transaksi->update([
-                        'status_pembayaran' => $request->transaction_status,
-                        'status_transaksi' => 'dibatalkan',
-                        'cancelled_at' => now(),
-                    ]);
-                    break;
-            }
-
-            PaymentLog::create([
-                'transaksi_id' => $transaksi->id,
-                'order_id' => $request->order_id,
-                'transaction_id' => $request->transaction_id,
-                'transaction_status' => $request->transaction_status,
-                'payment_type' => $request->payment_type,
-                'gross_amount' => $request->gross_amount,
-                'fraud_status' => $request->fraud_status,
-                'status_code' => $request->status_code,
-                'bank' => $request->bank,
-                'va_number' => isset($request->va_numbers[0]) ? $request->va_numbers[0]->va_number : null,
-                'merchant_id' => $request->merchant_id,
-                'request_data' => json_encode($request->all()),
-            ]);
-
-            DB::commit();
-
-            return response()->json(['message' => 'Notification processed']);
-        } catch (\Exception $e) {
-            DB::rollBack();
-            Log::error('Error processing Midtrans notification: ' . $e->getMessage(), [
-                'order_id' => $request->order_id,
-                'trace' => $e->getTraceAsString(),
-            ]);
-            return response()->json(['message' => 'Error processing notification'], 500);
-        }
+        return response()->json(['message' => 'Notification processed']);
     }
 }

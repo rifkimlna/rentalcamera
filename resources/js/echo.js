@@ -14,9 +14,11 @@ window.Echo = new Echo({
     csrfToken: window.Laravel?.csrfToken,
 });
 
-window.Echo.connector.pusher.connection.bind('state_change', function (states) {
-    console.log('[Echo] Connection:', states.previous, '→', states.current);
-});
+if (import.meta.env.DEV) {
+    window.Echo.connector.pusher.connection.bind('state_change', function (states) {
+        console.log('[Echo] Connection:', states.previous, '→', states.current);
+    });
+}
 
 window.Echo.connector.pusher.connection.bind('error', function (err) {
     console.error('[Echo] Error:', err);

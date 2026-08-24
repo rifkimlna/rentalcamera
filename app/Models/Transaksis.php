@@ -20,20 +20,14 @@ class Transaksis extends Model
         'nama_customer',
         'telepon_customer',
         'email_customer',
-        'alamat_pengiriman',
-        'kota_pengiriman',
-        'provinsi_pengiriman',
-        'kode_pos_pengiriman',
         'latitude',
         'longitude',
         'subtotal',
         'diskon',
         'kode_voucher',
-        'biaya_pengiriman',
         'biaya_asuransi',
         'biaya_lainnya',
         'total_sewa',
-        'deposit_amount',
         'admin_fee',
         'grand_total',
         'payment_method_id',
@@ -47,7 +41,6 @@ class Transaksis extends Model
         'midtrans_redirect_url',
         'status_pembayaran',
         'status_transaksi',
-        'status_deposit',
         'tanggal_pengambilan',
         'tanggal_pengembalian',
         'lama_sewa',
@@ -55,10 +48,10 @@ class Transaksis extends Model
         'metode_pengembalian',
         'catatan',
         'catatan_admin',
+        'deposit_amount',
         'payment_expired_at',
         'paid_at',
         'confirmed_at',
-        'shipped_at',
         'completed_at',
         'cancelled_at',
         'refunded_at',
@@ -68,11 +61,10 @@ class Transaksis extends Model
         'uuid' => 'string',
         'subtotal' => 'decimal:2',
         'diskon' => 'decimal:2',
-        'biaya_pengiriman' => 'decimal:2',
+
         'biaya_asuransi' => 'decimal:2',
         'biaya_lainnya' => 'decimal:2',
         'total_sewa' => 'decimal:2',
-        'deposit_amount' => 'decimal:2',
         'admin_fee' => 'decimal:2',
         'grand_total' => 'decimal:2',
         'latitude' => 'decimal:8',
@@ -80,7 +72,7 @@ class Transaksis extends Model
         'payment_expired_at' => 'datetime',
         'paid_at' => 'datetime',
         'confirmed_at' => 'datetime',
-        'shipped_at' => 'datetime',
+
         'completed_at' => 'datetime',
         'cancelled_at' => 'datetime',
         'refunded_at' => 'datetime',
@@ -107,24 +99,19 @@ class Transaksis extends Model
 
 
 
-    public function pengiriman()
-    {
-        return $this->hasOne(Pengiriman::class, 'transaksi_id');
-    }
-
     public function paymentLogs()
     {
         return $this->hasMany(PaymentLog::class, 'transaksi_id');
     }
 
-    public function depositTransactions()
-    {
-        return $this->hasMany(DepositTransaction::class, 'transaksi_id');
-    }
-
     public function ulasan()
     {
         return $this->hasOne(Ulasan::class, 'transaksi_id');
+    }
+
+    public function reviews()
+    {
+        return $this->hasMany(Ulasan::class, 'transaksi_id');
     }
 
     public function voucherUsage()
@@ -160,7 +147,7 @@ class Transaksis extends Model
 
     public function scopeActive($query)
     {
-        return $query->whereIn('status_transaksi', ['dikonfirmasi', 'dikemas', 'dikirim']);
+        return $query->whereIn('status_transaksi', ['dikonfirmasi', 'siap_diambil', 'diproses']);
     }
 
     public function scopeToday($query)
@@ -206,11 +193,6 @@ class Transaksis extends Model
         return 'Rp ' . number_format($this->subtotal, 0, ',', '.');
     }
 
-    public function getDepositAmountFormattedAttribute()
-    {
-        return 'Rp ' . number_format($this->deposit_amount, 0, ',', '.');
-    }
-
     public function getStatusPembayaranLabelAttribute()
     {
         $statuses = [
@@ -235,9 +217,7 @@ class Transaksis extends Model
             'menunggu_pembayaran' => 'Menunggu Pembayaran',
             'diproses' => 'Diproses',
             'dikonfirmasi' => 'Dikonfirmasi',
-            'dikemas' => 'Dikemas',
-            'dikirim' => 'Dikirim',
-            'dalam_perjalanan' => 'Dalam Perjalanan',
+            'siap_diambil' => 'Siap Diambil',
             'selesai' => 'Selesai',
             'dibatalkan' => 'Dibatalkan',
             'ditolak' => 'Ditolak',
@@ -245,35 +225,15 @@ class Transaksis extends Model
         return $statuses[$this->status_transaksi] ?? $this->status_transaksi;
     }
 
-    public function getStatusDepositLabelAttribute()
-    {
-        $statuses = [
-            'pending' => 'Pending',
-            'dibayar' => 'Dibayar',
-            'dikembalikan' => 'Dikembalikan',
-            'dipotong' => 'Dipotong',
-        ];
-        return $statuses[$this->status_deposit] ?? $this->status_deposit;
-    }
 
     public function getMetodePengambilanLabelAttribute()
     {
-        $methods = [
-            'pickup' => 'Ambil di Toko',
-            'delivery' => 'Dikirim',
-            'both' => 'Kedua-duanya',
-        ];
-        return $methods[$this->metode_pengambilan] ?? $this->metode_pengambilan;
+        return 'Ambil di Toko';
     }
 
     public function getMetodePengembalianLabelAttribute()
     {
-        $methods = [
-            'return' => 'Kembali ke Toko',
-            'pickup' => 'Jemput',
-            'both' => 'Kedua-duanya',
-        ];
-        return $methods[$this->metode_pengembalian] ?? $this->metode_pengembalian;
+        return 'Kembali ke Toko';
     }
 
     public function getProductsAttribute()
@@ -297,12 +257,12 @@ class Transaksis extends Model
 
     public function canBeReviewed()
     {
-        return $this->status_transaksi === 'selesai' && !$this->ulasan;
+        return $this->status_transaksi === 'selesai' && !$this->reviews()->exists();
     }
 
     public function hasReviewForProduct($produkId)
     {
-        return $this->ulasan && $this->ulasan->produk_id == $produkId;
+        return $this->reviews()->where('produk_id', $produkId)->exists();
     }
 
     public function canBeCancelled()
@@ -311,13 +271,25 @@ class Transaksis extends Model
                in_array($this->status_transaksi, ['menunggu_pembayaran', 'diproses']);
     }
 
+    public function canPickup()
+    {
+        return $this->status_transaksi === 'siap_diambil' &&
+               in_array($this->status_pembayaran, ['settlement', 'capture']);
+    }
+
+    public function canReturn()
+    {
+        return in_array($this->status_transaksi, ['dikonfirmasi', 'siap_diambil', 'diproses']) &&
+               in_array($this->status_pembayaran, ['settlement', 'capture']);
+    }
+
     public function isOverdue()
     {
         if (!$this->tanggal_pengembalian) {
             return false;
         }
 
-        return $this->status_transaksi === 'dikirim' &&
+        return in_array($this->status_transaksi, ['dikonfirmasi', 'siap_diambil', 'diproses']) &&
                now()->gt($this->tanggal_pengembalian);
     }
 
@@ -333,8 +305,8 @@ class Transaksis extends Model
     public function calculateOverdueFee()
     {
         $days = $this->calculateOverdueDays();
-        // 10% per day from deposit amount
-        return $this->deposit_amount * 0.1 * $days;
+        // 10% per day from total sewa
+        return $this->total_sewa * 0.1 * $days;
     }
 
     public function markAsPaid()
@@ -362,7 +334,7 @@ class Transaksis extends Model
         $this->update([
             'status_transaksi' => 'selesai',
             'completed_at' => now(),
-            'status_deposit' => 'dikembalikan',
+
         ]);
     }
 
