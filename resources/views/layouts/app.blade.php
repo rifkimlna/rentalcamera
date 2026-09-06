@@ -168,7 +168,7 @@
                 <x-flash-messages />
             </div>
         @else
-            @if((session()->has('success') || session()->has('error') || $errors->any()) && !request()->routeIs('login', 'password.request'))
+            @if((session()->has('success') || session()->has('error') || $errors->any()) && !request()->routeIs('login', 'register', 'password.request'))
                 <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-6 w-full">
                     <x-flash-messages />
                 </div>
