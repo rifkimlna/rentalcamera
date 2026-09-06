@@ -119,7 +119,7 @@
                         <td>
                             <div class="flex items-center gap-2">
                                 <div class="bg-[#f5f5f7] rounded-full flex items-center justify-center w-8 h-8">
-                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-[#6e6e73]" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg>
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-[#6e6e73]" viewBox="0 0 24 24" fill="currentColor"><path fill-rule="evenodd" d="M7.5 6a4.5 4.5 0 119 0 4.5 4.5 0 01-9 0zM3.751 20.105a8.25 8.25 0 0116.498 0 .75.75 0 01-.437.695A18.683 18.683 0 0112 22.5c-2.786 0-5.433-.608-7.812-1.7a.75.75 0 01-.437-.695z" clip-rule="evenodd"/></svg>
                                 </div>
                                 <div>
                                     <div class="font-medium">{{ $user->nama }}</div>
