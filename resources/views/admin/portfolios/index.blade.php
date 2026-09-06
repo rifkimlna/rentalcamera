@@ -4,7 +4,6 @@
 @section('page-title', 'Portfolio')
 
 @section('content')
-<x-flash-messages />
 <div class="flex justify-between items-center mb-4">
     <div>
         <p class="text-sm text-[#6e6e73]">Kelola foto dan video portfolio</p>

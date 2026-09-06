@@ -3,7 +3,6 @@
 @section('title', 'Layanan - Stekpro Multimedia & Broadcast')
 
 @section('content')
-<x-flash-messages />
 <div>
     <div class="flex items-center justify-between mb-4 sm:mb-6 gap-2">
         <div class="min-w-0">
@@ -284,7 +283,7 @@
                     icon: 'error',
                     title: 'Layanan Tidak Tersedia',
                     text: data.message || 'Terjadi kesalahan. Silakan coba jadwal lain.',
-                    confirmButtonColor: '#1d2327',
+                    confirmButtonColor: '#1d1d1f',
                     confirmButtonText: 'OK',
                 });
                 btn.disabled = false;
@@ -297,7 +296,7 @@
                 icon: 'error',
                 title: 'Kesalahan',
                 text: 'Terjadi kesalahan. Silakan coba lagi.',
-                confirmButtonColor: '#1d2327',
+                confirmButtonColor: '#1d1d1f',
                 confirmButtonText: 'OK',
             });
             btn.disabled = false;

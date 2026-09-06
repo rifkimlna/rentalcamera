@@ -3,7 +3,6 @@
 @section('title', $layanan->nama_layanan)
 
 @section('content')
-<x-flash-messages />
 <div class="container mx-auto px-4 py-8">
     <!-- Breadcrumb -->
     <nav class="text-sm mb-6">
@@ -390,7 +389,7 @@
                     icon: 'error',
                     title: 'Layanan Tidak Tersedia',
                     text: data.message || 'Terjadi kesalahan. Silakan coba jadwal lain.',
-                    confirmButtonColor: '#1d2327',
+                    confirmButtonColor: '#1d1d1f',
                     confirmButtonText: 'OK',
                 });
                 btn.disabled = false;
@@ -402,7 +401,7 @@
                 icon: 'error',
                 title: 'Kesalahan',
                 text: 'Terjadi kesalahan. Silakan coba lagi.',
-                confirmButtonColor: '#1d2327',
+                confirmButtonColor: '#1d1d1f',
                 confirmButtonText: 'OK',
             });
             btn.disabled = false;

@@ -4,7 +4,6 @@
 @section('page-title', 'Edit Layanan')
 
 @section('content')
-<x-flash-messages />
 <div class="bg-white rounded-2xl border border-[#f0f0f2] max-w-2xl">
     <div class="p-5">
         <form method="POST" action="{{ route('admin.layanan.update', $layanan->id) }}" enctype="multipart/form-data">

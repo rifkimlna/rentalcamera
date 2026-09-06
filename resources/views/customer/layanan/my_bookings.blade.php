@@ -8,7 +8,6 @@
 @endphp
 
 @section('content')
-<x-flash-messages />
 <div class="space-y-4">
     <div class="flex flex-col sm:flex-row gap-3 items-start sm:items-center justify-between">
         <p class="text-sm text-[#6e6e73]">Semua booking layanan Anda</p>

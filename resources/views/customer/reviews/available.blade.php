@@ -3,7 +3,6 @@
 @section('title', 'Transaksi yang Dapat Diulas - Stekpro Multimedia & Broadcast')
 
 @section('content')
-<x-flash-messages />
 <div class="p-4">
     <div class="card bg-white shadow-md">
         <div class="p-5">

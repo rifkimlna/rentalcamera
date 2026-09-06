@@ -3,7 +3,6 @@
 @section('title', 'Pembayaran Pending - Stekpro Multimedia & Broadcast')
 
 @section('content')
-<x-flash-messages />
 <div class="min-h-[70vh] flex items-center justify-center px-4 py-12">
     <div class="w-full max-w-xl">
         <div class="text-center mb-8">

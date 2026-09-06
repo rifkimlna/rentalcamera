@@ -4,7 +4,6 @@
 @section('page-title', 'Cetak Booking')
 
 @section('content')
-<x-flash-messages />
 <div class="max-w-2xl mx-auto" id="print-area">
     <div class="bg-white rounded-2xl border border-[#f0f0f2]">
         <div class="p-6">

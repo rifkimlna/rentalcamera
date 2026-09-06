@@ -3,7 +3,6 @@
 @section('title', 'Pembayaran Studio')
 
 @section('content')
-<x-flash-messages />
 <div class="min-h-[calc(100vh-5rem)] flex flex-col justify-center p-4 sm:p-6">
     <div class="mx-auto w-full max-w-2xl">
         <!-- Transaction Info -->
@@ -318,7 +317,7 @@
                                 icon: 'error',
                                 title: 'Pembayaran Gagal',
                                 text: 'Silakan coba lagi atau gunakan metode pembayaran lain',
-                                confirmButtonColor: '#0d6efd'
+                                confirmButtonColor: '#1d1d1f'
                             }).then(() => {
                                 window.location.reload();
                             });
@@ -352,7 +351,7 @@
                         icon: 'warning',
                         title: 'Pembayaran Gagal',
                         text: 'Batas waktu pembayaran telah habis atau pembayaran gagal.',
-                        confirmButtonColor: '#0d6efd'
+                        confirmButtonColor: '#1d1d1f'
                     }).then(() => {
                         window.location.href = fallbackUrl;
                     });

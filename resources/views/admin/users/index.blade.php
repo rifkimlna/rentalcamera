@@ -4,7 +4,6 @@
 @section('page-title', 'Manajemen Pengguna')
 
 @section('content')
-<x-flash-messages />
 <div>
     <div class="flex justify-between items-center mb-4">
         <div>

@@ -3,7 +3,6 @@
 @section('title', 'Dashboard - Stekpro Multimedia & Broadcast')
 
 @section('content')
-<x-flash-messages />
 <div class="space-y-4 sm:space-y-5">
 
     <!-- Hero / Welcome -->

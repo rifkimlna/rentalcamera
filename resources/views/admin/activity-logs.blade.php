@@ -4,7 +4,6 @@
 @section('page-title', 'Activity Logs')
 
 @section('content')
-<x-flash-messages />
 <div class="bg-white rounded-2xl border border-[#f0f0f2]">
     <div class="">
         <div class="overflow-x-auto">

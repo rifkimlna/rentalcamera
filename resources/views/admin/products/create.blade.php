@@ -4,7 +4,6 @@
 @section('page-title', 'Tambah Equipment')
 
 @section('content')
-<x-flash-messages />
 <div class="bg-white rounded-2xl border border-[#f0f0f2]">
         <div class="p-5">
             <form action="{{ route('admin.products.store') }}" method="POST" enctype="multipart/form-data">

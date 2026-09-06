@@ -4,7 +4,6 @@
 @section('page-title', 'Kategori')
 
 @section('content')
-<x-flash-messages />
 <div class="bg-white rounded-2xl border border-[#f0f0f2]">
     <div class="p-5">
         <div class="flex justify-between items-center mb-4">

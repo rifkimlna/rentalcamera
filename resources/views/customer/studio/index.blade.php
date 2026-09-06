@@ -3,7 +3,6 @@
 @section('title', 'Studio - Stekpro Multimedia & Broadcast')
 
 @section('content')
-<x-flash-messages />
 <div>
     <div class="flex items-center justify-between mb-4 sm:mb-6 gap-2">
         <div class="min-w-0">

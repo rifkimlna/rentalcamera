@@ -3,7 +3,6 @@
 @section('title', 'Pembayaran - Stekpro Multimedia & Broadcast')
 
 @section('content')
-<x-flash-messages />
 <div class="min-h-[calc(100vh-5rem)] flex flex-col justify-center p-4 sm:p-6">
     <div class="mx-auto w-full max-w-2xl">
             <!-- Transaction Info -->

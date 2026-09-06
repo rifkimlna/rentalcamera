@@ -3,7 +3,6 @@
 @section('title', $studio->nama_studio)
 
 @section('content')
-<x-flash-messages />
 <div class="container mx-auto px-4 py-8">
     <!-- Breadcrumb -->
     <nav class="text-sm mb-6">

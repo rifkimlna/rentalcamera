@@ -4,7 +4,6 @@
 @section('page-title', 'Edit Equipment')
 
 @section('content')
-<x-flash-messages />
 <div class="bg-white rounded-2xl border border-[#f0f0f2]">
         <div class="p-5">
             <form action="{{ route('admin.products.update', $product->id) }}" method="POST" enctype="multipart/form-data"

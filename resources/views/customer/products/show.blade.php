@@ -3,7 +3,6 @@
 @section('title', $product->nama_produk)
 
 @section('content')
-<x-flash-messages />
 <div class="max-w-7xl mx-auto px-5 sm:px-8 lg:px-12 py-8 lg:py-12">
 
     {{-- Breadcrumb --}}

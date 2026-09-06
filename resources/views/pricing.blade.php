@@ -3,7 +3,6 @@
 @section('title', 'Harga Sewa')
 
 @section('content')
-<x-flash-messages />
 <section class="section-dim">
     <div class="max-w-7xl mx-auto px-5 sm:px-8 lg:px-12 py-24 lg:py-32">
         <p class="text-sm font-medium text-[#86868b] mb-4 tracking-wide">Harga Sewa</p>

@@ -3,7 +3,6 @@
 @section('title', 'Checkout - Stekpro Multimedia & Broadcast')
 
 @section('content')
-<x-flash-messages />
 <div class="p-4">
     <div class="text-sm mb-4">
         <ul class="flex items-center gap-2 text-[#6e6e73]">

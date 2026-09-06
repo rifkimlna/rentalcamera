@@ -4,7 +4,6 @@
 @section('page-title', 'Booking Studio')
 
 @section('content')
-<x-flash-messages />
 <div class="bg-white rounded-2xl border border-[#f0f0f2] mb-4">
     <div class="py-3 px-4">
         <form method="GET" class="flex flex-wrap gap-x-3 gap-y-2 items-end">

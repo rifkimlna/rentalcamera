@@ -4,7 +4,6 @@
 @section('page-title', 'Profil Saya')
 
 @section('content')
-<x-flash-messages />
 <div class="max-w-4xl mx-auto space-y-6">
 
     <!-- Identitas -->

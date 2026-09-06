@@ -4,7 +4,6 @@
 @section('page-title', 'Equipment')
 
 @section('content')
-<x-flash-messages />
 <div id="productsPage"
      data-availability-url="{{ route('customer.products.check-availability') }}"
      data-csrf="{{ csrf_token() }}">
