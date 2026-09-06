@@ -3,7 +3,7 @@
 @section('title', 'Masuk')
 
 @section('content')
-<x-flash-messages />
+<x-flash-messages :show-errors="false" />
 <div class="flex-1 flex items-center justify-center px-4 py-10 bg-white">
     <div class="w-full max-w-sm">
         <div class="bg-white rounded-2xl border border-[#f0f0f2] p-8 sm:p-10">
