@@ -3,6 +3,7 @@
 @section('title', $layanan->nama_layanan)
 
 @section('content')
+<x-flash-messages />
 <div class="container mx-auto px-4 py-8">
     <!-- Breadcrumb -->
     <nav class="text-sm mb-6">
@@ -143,6 +144,7 @@
                     <div class="bg-[#f5f5f7] rounded-2xl">
                         <div class="p-5">
                             <h5 class="font-semibold text-lg mb-3">Booking Layanan</h5>
+                            @auth
                             <form method="POST" action="{{ route('customer.layanan.direct-booking') }}" id="bookingForm">
                                 @csrf
                                 <input type="hidden" name="layanan_id" value="{{ $layanan->id }}">
@@ -207,6 +209,13 @@
                                     Lanjutkan ke Checkout
                                 </button>
                             </form>
+                            @else
+                            <div class="p-4 rounded-xl bg-[#eff6ff] border border-[#bfdbfe] mb-3">
+                                <p class="text-sm text-[#1d4ed8] mb-3">Silakan login terlebih dahulu untuk booking layanan. Anda tetap bisa lihat-lihat harga, paket, dan ulasan.</p>
+                                <a href="{{ route('login') }}" class="btn-dark-apple w-full text-center block">Masuk untuk Booking</a>
+                                <a href="{{ route('register') }}" class="btn-outline-apple w-full mt-2 text-center block">Belum punya akun? Daftar</a>
+                            </div>
+                            @endauth
                             @php $waPhone = '6281234567890'; $waText = rawurlencode('Halo, saya tertarik dengan layanan ' . $layanan->nama_layanan . ' - ' . request()->url()); @endphp
                             <a href="https://wa.me/{{ $waPhone }}?text={{ $waText }}" target="_blank"
                                class="btn-outline-apple w-full mt-3" rel="noopener">
@@ -351,12 +360,14 @@
     });
     updateEstimasi();
 
-    // AJAX booking -> direct-booking -> redirect to checkout
-    document.getElementById('bookingForm').addEventListener('submit', function(e) {
+    // AJAX booking -> direct-booking -> redirect to checkout (hanya user login)
+    const layananBookingForm = document.getElementById('bookingForm');
+    if (layananBookingForm) {
+    layananBookingForm.addEventListener('submit', function(e) {
         e.preventDefault();
         const btn = document.getElementById('bookingSubmitBtn');
         btn.disabled = true;
-        btn.innerHTML = '<span class="inline-block animate-spin w-4 h-4 border-2 border-current border-t-transparent rounded-full"></span> Memproses...';
+        btn.innerHTML = '<span class="gooey-loader" style="--gooey-dot:7px;margin-right:8px"><i></i><i></i><i></i></span>Memproses...';
 
         const formData = new FormData(this);
         formData.append('_token', '{{ csrf_token() }}');
@@ -366,8 +377,12 @@
             headers: { 'X-CSRF-TOKEN': '{{ csrf_token() }}', 'X-Requested-With': 'XMLHttpRequest' },
             body: formData
         })
-        .then(res => res.json())
+        .then(res => {
+            if (res.status === 401) { window.location.href = '{{ route("login") }}'; return null; }
+            return res.json();
+        })
         .then(data => {
+            if (!data) return;
             if (data.success) {
                 window.location.href = '{{ route("customer.checkout.index") }}';
             } else {
@@ -394,6 +409,7 @@
             btn.textContent = 'Lanjutkan ke Checkout';
         });
     });
+    }
 
     function copyLink() {
         navigator.clipboard.writeText(window.location.href).then(() => {

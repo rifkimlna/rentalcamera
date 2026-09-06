@@ -11,6 +11,7 @@
 @endpush
 
 @section('content')
+<x-flash-messages />
 <div class="space-y-4">
     @php
         $currentDate = null;

@@ -3,7 +3,8 @@
 @section('title', 'Daftar Akun')
 
 @section('content')
-<div class="flex-1 flex items-center justify-center px-4 py-6 sm:py-8 min-h-screen bg-[#f5f5f7]">
+<x-flash-messages />
+<div class="flex-1 flex items-center justify-center px-4 py-10 bg-white">
     <div class="w-full max-w-md">
         <div class="bg-white rounded-2xl border border-[#f0f0f2] p-8 sm:p-10">
             <div class="text-center mb-6">
@@ -162,8 +163,8 @@
         </div>
 
         <div class="text-center mt-4">
-            <a href="{{ route('home') }}" class="text-sm text-[#6e6e73] hover:text-[#1d1d1f] transition-colors">
-                &larr; Kembali ke beranda
+            <a href="{{ route('home') }}" class="text-sm text-[#0071e3] hover:underline">
+                Kembali ke beranda
             </a>
         </div>
     </div>

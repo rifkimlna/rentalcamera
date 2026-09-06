@@ -59,12 +59,12 @@ class AuthController extends Controller
             $user->last_login_ip = $request->ip();
             $user->save(); // Menggunakan save() method
             
-            // Redirect berdasarkan role
+            // Redirect berdasarkan role, hormati halaman tujuan sebelum login (intended)
             if ($user->isAdmin() || $user->isSuperAdmin()) {
-                return redirect()->route('admin.dashboard');
+                return redirect()->intended(route('admin.dashboard'));
             }
             
-            return redirect()->intended('/');
+            return redirect()->intended(route('customer.dashboard'));
         }
         
         RateLimiter::hit($throttleKey, 60);
@@ -161,8 +161,72 @@ class AuthController extends Controller
         $status = Password::sendResetLink($request->only('email'));
 
         return $status === Password::RESET_LINK_SENT
-            ? back()->with('status', 'Link reset password telah dikirim ke email Anda.')
+            ? back()->with('success', 'Link reset password telah dikirim ke email Anda. Silakan cek kotak masuk / spam.')
             : back()->withErrors(['email' => 'Email tidak terdaftar pada sistem kami.']);
+    }
+
+    /**
+     * Verifikasi identitas via email + nomor HP untuk reset tanpa email.
+     * Dipakai karena pengiriman email (SMTP) belum dikonfigurasi.
+     */
+    public function verifyResetIdentity(Request $request)
+    {
+        $request->validate([
+            'email' => 'required|email',
+            'telepon' => 'required|string|max:20',
+        ]);
+
+        $user = User::where('email', $request->email)
+            ->where('telepon', $request->telepon)
+            ->first();
+
+        if (!$user) {
+            return back()
+                ->withErrors(['telepon' => 'Kombinasi email dan nomor HP tidak cocok dengan data kami.'])
+                ->withInput();
+        }
+
+        session([
+            'pwd_reset_user_id' => $user->id,
+            'pwd_reset_expires' => now()->addMinutes(10)->timestamp,
+        ]);
+
+        return back()->with('success', 'Identitas terverifikasi. Silakan buat password baru (berlaku 10 menit).');
+    }
+
+    /**
+     * Simpan password baru setelah identitas terverifikasi via nomor HP.
+     */
+    public function resetPasswordByPhone(Request $request)
+    {
+        $request->validate([
+            'password' => 'required|min:6|confirmed',
+        ]);
+
+        $userId = session('pwd_reset_user_id');
+        $expires = session('pwd_reset_expires');
+
+        if (!$userId || !$expires || now()->timestamp > $expires) {
+            session()->forget(['pwd_reset_user_id', 'pwd_reset_expires']);
+            return redirect()->route('password.request')
+                ->with('error', 'Sesi verifikasi kedaluwarsa. Silakan ulangi dari awal.');
+        }
+
+        $user = User::find($userId);
+
+        if (!$user) {
+            session()->forget(['pwd_reset_user_id', 'pwd_reset_expires']);
+            return redirect()->route('password.request')
+                ->with('error', 'Akun tidak ditemukan. Silakan ulangi dari awal.');
+        }
+
+        $user->password = Hash::make($request->password);
+        $user->save();
+
+        session()->forget(['pwd_reset_user_id', 'pwd_reset_expires']);
+
+        return redirect()->route('login')
+            ->with('success', 'Password berhasil direset. Silakan masuk dengan password baru.');
     }
 
     /**
@@ -197,7 +261,7 @@ class AuthController extends Controller
         );
 
         return $status === Password::PASSWORD_RESET
-            ? redirect()->route('login')->with('status', 'Password berhasil direset.')
+            ? redirect()->route('login')->with('success', 'Password berhasil direset. Silakan masuk dengan password baru.')
             : back()->withErrors(['email' => 'Token reset password tidak valid atau telah kedaluwarsa.']);
     }
 
@@ -252,7 +316,7 @@ class AuthController extends Controller
 
         $user->sendEmailVerificationNotification();
 
-        return back()->with('status', 'Link verifikasi baru telah dikirim ke email Anda.');
+        return back()->with('success', 'Link verifikasi baru telah dikirim ke email Anda.');
     }
 
     /**

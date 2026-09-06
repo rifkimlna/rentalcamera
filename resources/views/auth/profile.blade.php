@@ -4,6 +4,7 @@
 @section('page-title', 'Profil Saya')
 
 @section('content')
+<x-flash-messages />
 <div class="max-w-4xl mx-auto space-y-6">
 
     <!-- Identitas -->
@@ -26,7 +27,7 @@
     </div>
 
     <!-- Verifikasi Telepon -->
-    <div class="bg-white rounded-2xl border border-[#f0f0f2] p-8">
+    <div id="verifikasi-telepon" class="bg-white rounded-2xl border border-[#f0f0f2] p-8 scroll-mt-24">
         <h3 class="text-sm font-semibold text-[#1d1d1f] mb-3">Verifikasi Telepon</h3>
 
         @if($user->telepon_verified_at)

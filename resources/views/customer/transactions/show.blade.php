@@ -62,6 +62,7 @@
 @endphp
 
 @section('content')
+<x-flash-messages />
 <div class="space-y-5">
 
     {{-- Header --}}

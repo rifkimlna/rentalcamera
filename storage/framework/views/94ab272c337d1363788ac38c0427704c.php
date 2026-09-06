@@ -2,9 +2,28 @@
 <?php $__env->startSection('page-title', 'Equipment'); ?>
 
 <?php $__env->startSection('content'); ?>
+<?php if (isset($component)) { $__componentOriginal5b09c79149dfb771c232996af5f9dae4 = $component; } ?>
+<?php if (isset($attributes)) { $__attributesOriginal5b09c79149dfb771c232996af5f9dae4 = $attributes; } ?>
+<?php $component = Illuminate\View\AnonymousComponent::resolve(['view' => 'components.flash-messages','data' => []] + (isset($attributes) && $attributes instanceof Illuminate\View\ComponentAttributeBag ? $attributes->all() : [])); ?>
+<?php $component->withName('flash-messages'); ?>
+<?php if ($component->shouldRender()): ?>
+<?php $__env->startComponent($component->resolveView(), $component->data()); ?>
+<?php if (isset($attributes) && $attributes instanceof Illuminate\View\ComponentAttributeBag): ?>
+<?php $attributes = $attributes->except(\Illuminate\View\AnonymousComponent::ignoredParameterNames()); ?>
+<?php endif; ?>
+<?php $component->withAttributes([]); ?>
+<?php echo $__env->renderComponent(); ?>
+<?php endif; ?>
+<?php if (isset($__attributesOriginal5b09c79149dfb771c232996af5f9dae4)): ?>
+<?php $attributes = $__attributesOriginal5b09c79149dfb771c232996af5f9dae4; ?>
+<?php unset($__attributesOriginal5b09c79149dfb771c232996af5f9dae4); ?>
+<?php endif; ?>
+<?php if (isset($__componentOriginal5b09c79149dfb771c232996af5f9dae4)): ?>
+<?php $component = $__componentOriginal5b09c79149dfb771c232996af5f9dae4; ?>
+<?php unset($__componentOriginal5b09c79149dfb771c232996af5f9dae4); ?>
+<?php endif; ?>
 <div id="productsPage"
      data-availability-url="<?php echo e(route('customer.products.check-availability')); ?>"
-     data-cart-summary-url="<?php echo e(route('customer.cart.summary')); ?>"
      data-csrf="<?php echo e(csrf_token()); ?>">
 
     
@@ -13,13 +32,6 @@
             <h1 class="text-lg sm:text-2xl lg:text-3xl font-bold text-[#1d1d1f] tracking-tight">Equipment</h1>
             <p class="text-xs sm:text-sm text-[#6e6e73] mt-0.5 hidden sm:block">Temukan peralatan fotografi terbaik untuk kebutuhan Anda</p>
         </div>
-        <a href="<?php echo e(route('customer.cart.index')); ?>" class="flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 sm:py-2.5 rounded-full bg-[#f5f5f7] hover:bg-[#e5e5e7] transition-colors shrink-0">
-            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 sm:h-4.5 sm:w-4.5 text-[#1d1d1f]" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
-            </svg>
-            <span class="text-xs sm:text-sm font-medium text-[#1d1d1f] hidden sm:inline">Keranjang</span>
-            <span class="cart-badge text-[10px] sm:text-xs font-semibold bg-[#1d1d1f] text-white w-4 h-4 sm:w-5 sm:h-5 rounded-full flex items-center justify-center">0</span>
-        </a>
     </div>
 
     
@@ -169,7 +181,7 @@
             </button>
         </div>
 
-        <form id="addToCartForm" method="POST" action="<?php echo e(route('customer.cart.add')); ?>">
+        <form id="addToCartForm" method="POST" action="<?php echo e(route('customer.checkout.direct-rent')); ?>">
             <?php echo csrf_field(); ?>
             <input type="hidden" name="product_id" id="modal_product_id">
 
@@ -222,6 +234,13 @@
 <?php $__env->startPush('scripts'); ?>
 <script>
     document.addEventListener('DOMContentLoaded', function() {
+        // Tamu boleh lihat-lihat, tapi aksi sewa wajib login
+        const IS_GUEST = <?php echo e(auth()->check() ? 'false' : 'true'); ?>;
+        const LOGIN_URL = '<?php echo e(route("login")); ?>';
+        function requireLogin() {
+            alert('Silakan login terlebih dahulu untuk menyewa.');
+            window.location.href = LOGIN_URL;
+        }
         function calculateRentalDays() {
             const startDate = document.getElementById('start_date').value;
             const endDate = document.getElementById('end_date').value;
@@ -248,19 +267,13 @@
         document.getElementById('end_date').addEventListener('change', calculateRentalDays);
         document.getElementById('quantity').addEventListener('change', updatePrice);
 
-        // Add to cart button click
+        // Tombol sewa -> langsung isi tanggal lalu checkout (tanpa keranjang)
         document.querySelectorAll('.add-to-cart').forEach(function(btn) {
             btn.addEventListener('click', function() {
+                if (IS_GUEST) { requireLogin(); return; }
                 const productId = this.dataset.productId;
-                const action = this.dataset.action || 'cart';
-                document.getElementById('addToCartForm').dataset.action = action;
-                if (action === 'checkout') {
-                    document.getElementById('modalTitle').textContent = 'Lanjut ke Checkout';
-                    document.getElementById('modalSubmitBtn').textContent = 'Lanjut ke Checkout';
-                } else {
-                    document.getElementById('modalTitle').textContent = 'Tambah ke Keranjang';
-                    document.getElementById('modalSubmitBtn').textContent = 'Tambah ke Keranjang';
-                }
+                document.getElementById('modalTitle').textContent = 'Sewa Equipment';
+                document.getElementById('modalSubmitBtn').textContent = 'Lanjut ke Checkout';
 
                 fetch(document.getElementById('productsPage').dataset.availabilityUrl, {
                     method: 'POST',
@@ -294,48 +307,28 @@
             });
         });
 
-        // Handle form submission
+        // Handle form submission -> simpan ke session lalu ke checkout
         document.getElementById('addToCartForm').addEventListener('submit', function(e) {
             e.preventDefault();
-            const action = this.dataset.action || 'cart';
+            if (IS_GUEST) { requireLogin(); return; }
             const formData = new FormData(this);
 
-            if (action === 'checkout') {
-                fetch('<?php echo e(route("customer.cart.direct-rent")); ?>', {
-                    method: 'POST',
-                    headers: { 'X-CSRF-TOKEN': document.querySelector('input[name="_token"]').value },
-                    body: formData
-                })
-                .then(r => r.json())
-                .then(function(data) {
-                    addToCartModal.close();
-                    if (data.success) window.location.href = '<?php echo e(route("customer.checkout.index")); ?>';
-                    else alert(data.message || 'Terjadi kesalahan');
-                });
-            } else {
-                fetch(this.action, {
-                    method: 'POST',
-                    headers: { 'X-CSRF-TOKEN': document.querySelector('input[name="_token"]').value },
-                    body: formData
-                })
-                .then(r => r.json())
-                .then(function(data) {
-                    addToCartModal.close();
-                    if (data.message) alert(data.message);
-                    updateCartBadge();
-                });
-            }
-        });
-
-        function updateCartBadge() {
-            fetch(document.getElementById('productsPage').dataset.cartSummaryUrl)
-            .then(r => r.json())
-            .then(function(response) {
-                if (response.success) document.querySelectorAll('.cart-badge').forEach(function(b) { b.textContent = response.data.items_count; });
+            fetch('<?php echo e(route("customer.checkout.direct-rent")); ?>', {
+                method: 'POST',
+                headers: { 'X-CSRF-TOKEN': document.querySelector('input[name="_token"]').value },
+                body: formData
+            })
+            .then(r => {
+                if (r.status === 401) { requireLogin(); return null; }
+                return r.json();
+            })
+            .then(function(data) {
+                if (!data) return;
+                addToCartModal.close();
+                if (data.success) window.location.href = '<?php echo e(route("customer.checkout.index")); ?>';
+                else alert(data.message || 'Terjadi kesalahan');
             });
-        }
-
-        updateCartBadge();
+        });
     });
 </script>
 <?php $__env->stopPush(); ?>

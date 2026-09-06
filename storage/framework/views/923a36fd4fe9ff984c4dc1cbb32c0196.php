@@ -3,6 +3,26 @@
 <?php $__env->startSection('title', 'Studio - Stekpro Multimedia & Broadcast'); ?>
 
 <?php $__env->startSection('content'); ?>
+<?php if (isset($component)) { $__componentOriginal5b09c79149dfb771c232996af5f9dae4 = $component; } ?>
+<?php if (isset($attributes)) { $__attributesOriginal5b09c79149dfb771c232996af5f9dae4 = $attributes; } ?>
+<?php $component = Illuminate\View\AnonymousComponent::resolve(['view' => 'components.flash-messages','data' => []] + (isset($attributes) && $attributes instanceof Illuminate\View\ComponentAttributeBag ? $attributes->all() : [])); ?>
+<?php $component->withName('flash-messages'); ?>
+<?php if ($component->shouldRender()): ?>
+<?php $__env->startComponent($component->resolveView(), $component->data()); ?>
+<?php if (isset($attributes) && $attributes instanceof Illuminate\View\ComponentAttributeBag): ?>
+<?php $attributes = $attributes->except(\Illuminate\View\AnonymousComponent::ignoredParameterNames()); ?>
+<?php endif; ?>
+<?php $component->withAttributes([]); ?>
+<?php echo $__env->renderComponent(); ?>
+<?php endif; ?>
+<?php if (isset($__attributesOriginal5b09c79149dfb771c232996af5f9dae4)): ?>
+<?php $attributes = $__attributesOriginal5b09c79149dfb771c232996af5f9dae4; ?>
+<?php unset($__attributesOriginal5b09c79149dfb771c232996af5f9dae4); ?>
+<?php endif; ?>
+<?php if (isset($__componentOriginal5b09c79149dfb771c232996af5f9dae4)): ?>
+<?php $component = $__componentOriginal5b09c79149dfb771c232996af5f9dae4; ?>
+<?php unset($__componentOriginal5b09c79149dfb771c232996af5f9dae4); ?>
+<?php endif; ?>
 <div>
     <div class="flex items-center justify-between mb-4 sm:mb-6 gap-2">
         <div class="min-w-0">
@@ -103,9 +123,14 @@
                 <div class="flex gap-1.5 sm:gap-2">
                     <a href="<?php echo e(route('customer.studio.show', $studio->slug)); ?>" class="btn-outline-apple flex-1 !text-[11px] sm:!text-xs lg:!text-sm !py-1.5 sm:!py-2">Detail</a>
                     <?php if($studio->paketActive->count() > 0): ?>
-                        <button type="button" class="btn-dark-apple flex-1 !text-[11px] sm:!text-xs lg:!text-sm !py-1.5 sm:!py-2" onclick="openStudioModal(<?php echo e($studio->id); ?>)">Sewa</button>
+                        
+                        <?php if(auth()->guard()->check()): ?>
+                            <button type="button" class="btn-dark-apple flex-1 !text-[11px] sm:!text-xs lg:!text-sm !py-1.5 sm:!py-2" onclick="openStudioModal(<?php echo e($studio->id); ?>)">Sewa</button>
+                        <?php else: ?>
+                            <a href="<?php echo e(route('customer.studio.show', $studio->slug)); ?>" class="btn-dark-apple flex-1 !text-[11px] sm:!text-xs lg:!text-sm !py-1.5 sm:!py-2 text-center">Sewa</a>
+                        <?php endif; ?>
                     <?php else: ?>
-                        <a href="<?php echo e(route('customer.studio.show', $studio->slug)); ?>" class="btn-dark-apple flex-1">Sewa</a>
+                        <a href="<?php echo e(route('customer.studio.show', $studio->slug)); ?>" class="btn-dark-apple flex-1 !text-[11px] sm:!text-xs lg:!text-sm !py-1.5 sm:!py-2 text-center">Sewa</a>
                     <?php endif; ?>
                 </div>
             </div>
@@ -171,8 +196,15 @@
 <?php $__env->startPush('scripts'); ?>
 <script>
     const studiosData = <?php echo json_encode($studiosJson); ?>;
+    const STUDIO_IS_GUEST = <?php echo e(auth()->check() ? 'false' : 'true'); ?>;
+    const STUDIO_LOGIN_URL = '<?php echo e(route("login")); ?>';
 
     function openStudioModal(studioId) {
+        if (STUDIO_IS_GUEST) {
+            alert('Silakan login terlebih dahulu untuk menyewa.');
+            window.location.href = STUDIO_LOGIN_URL;
+            return;
+        }
         const studio = studiosData[studioId];
         if (!studio) return;
 
@@ -257,9 +289,10 @@
     // AJAX booking submission -> store in session, go to checkout
     document.getElementById('studioBookingForm').addEventListener('submit', function(e) {
         e.preventDefault();
+        if (STUDIO_IS_GUEST) { window.location.href = STUDIO_LOGIN_URL; return; }
         const btn = document.getElementById('modalBookingBtn');
         btn.disabled = true;
-        btn.innerHTML = '<span class="inline-block animate-spin w-4 h-4 border-2 border-current border-t-transparent rounded-full"></span> Memproses...';
+        btn.innerHTML = '<span class="gooey-loader" style="--gooey-dot:7px;margin-right:8px"><i></i><i></i><i></i></span>Memproses...';
 
         const formData = new FormData(this);
         formData.append('_token', '<?php echo e(csrf_token()); ?>');
@@ -269,8 +302,12 @@
             headers: { 'X-CSRF-TOKEN': '<?php echo e(csrf_token()); ?>', 'X-Requested-With': 'XMLHttpRequest' },
             body: formData
         })
-        .then(res => res.json())
+        .then(res => {
+            if (res.status === 401) { window.location.href = STUDIO_LOGIN_URL; return null; }
+            return res.json();
+        })
         .then(data => {
+            if (!data) return;
             if (data.success) {
                 document.getElementById('studioModal').close();
                 window.location.href = '<?php echo e(route("customer.checkout.index")); ?>';

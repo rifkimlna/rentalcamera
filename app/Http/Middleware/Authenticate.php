@@ -12,6 +12,16 @@ class Authenticate extends Middleware
      */
     protected function redirectTo(Request $request): ?string
     {
-        return $request->expectsJson() ? null : route('login');
+        if ($request->expectsJson()) {
+            return null;
+        }
+
+        // Tamu yang mencoba aksi sewa (cart/checkout/booking/transaksi) diarahkan
+        // ke login dengan pesan, URL tujuan disimpan otomatis sebagai intended.
+        if (! $request->session()->has('error')) {
+            $request->session()->flash('error', 'Silakan login terlebih dahulu untuk menyewa.');
+        }
+
+        return route('login');
     }
 }

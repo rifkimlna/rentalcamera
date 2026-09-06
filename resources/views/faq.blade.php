@@ -3,6 +3,7 @@
 @section('title', 'FAQ')
 
 @section('content')
+<x-flash-messages />
 <section class="section-dim">
     <div class="max-w-3xl mx-auto px-5 sm:px-8 py-24 lg:py-32">
         <p class="text-sm font-medium text-[#86868b] mb-4 tracking-wide">FAQ</p>

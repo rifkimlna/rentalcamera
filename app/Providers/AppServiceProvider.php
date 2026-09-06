@@ -2,6 +2,9 @@
 
 namespace App\Providers;
 
+use App\Models\Transaksis;
+use App\Observers\TransaksisObserver;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\ServiceProvider;
 
 class AppServiceProvider extends ServiceProvider
@@ -21,6 +24,10 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
-        //
+        // Register model observers
+        if (Schema::hasTable('transaksis')) {
+            Transaksis::observe(TransaksisObserver::class);
+            Transaksis::observe(\App\Observers\TransaksiStockObserver::class);
+        }
     }
 }

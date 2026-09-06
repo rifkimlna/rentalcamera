@@ -4,6 +4,7 @@
 @section('page-title', 'Booking Berhasil')
 
 @section('content')
+<x-flash-messages />
 <div class="px-4">
     <div class="card-apple-static">
         <div class="p-6 text-center">

@@ -4,6 +4,7 @@
 @section('page-title', 'Edit Paket: ' . $paket->nama_paket)
 
 @section('content')
+<x-flash-messages />
 <div class="bg-white rounded-2xl border border-[#f0f0f2] max-w-2xl">
     <div class="p-5">
         <form method="POST" action="{{ route('admin.studio.paket.update', [$studio->id, $paket->id]) }}" enctype="multipart/form-data">

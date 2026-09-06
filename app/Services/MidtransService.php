@@ -179,31 +179,19 @@ class MidtransService
     /**
      * Generate virtual account number.
      */
-    protected function generateVANumber($bankCode)
+    protected function generateVANumber(string $bankCode): string
     {
-        // This should generate a unique VA number based on your business logic
-        // For example: merchant_id + timestamp + random number
         $timestamp = time();
-        $random = rand(1000, 9999);
-        
-        // Different banks have different VA number formats
-        switch ($bankCode) {
-            case 'bca':
-                // BCA VA: 8 digits
-                return substr($this->merchantId . $timestamp, 0, 8);
-            case 'bni':
-                // BNI VA: 10 digits
-                return substr($this->merchantId . $timestamp, 0, 10);
-            case 'mandiri':
-                // Mandiri VA: 12 digits
-                return substr($this->merchantId . $timestamp, 0, 12);
-            case 'bri':
-                // BRI VA: 15 digits
-                return substr($this->merchantId . $timestamp . $random, 0, 15);
-            default:
-                // Default 10 digits
-                return substr($this->merchantId . $timestamp, 0, 10);
-        }
+        $random = mt_rand(10000, 99999); // 5 digit random untuk mengurangi collision risk
+        $base = $this->merchantId . $timestamp . $random;
+
+        return match ($bankCode) {
+            'bca'     => substr($base, 0, 8),
+            'bni'     => substr($base, 0, 10),
+            'mandiri' => substr($base, 0, 12),
+            'bri'     => substr($base, 0, 15),
+            default   => substr($base, 0, 10),
+        };
     }
 
     /**

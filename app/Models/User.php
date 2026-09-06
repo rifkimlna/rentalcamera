@@ -11,7 +11,6 @@ use Laravel\Sanctum\HasApiTokens;
 
 // Import models
 use App\Models\Transaksis;
-use App\Models\Keranjang;
 use App\Models\Ulasan;
 use App\Models\Notification;
 use App\Models\ActivityLog;
@@ -89,11 +88,6 @@ class User extends Authenticatable implements MustVerifyEmail
     public function transaksis()
     {
         return $this->hasMany(Transaksis::class, 'user_id');
-    }
-
-    public function keranjangs()
-    {
-        return $this->hasMany(Keranjang::class, 'user_id');
     }
 
     public function ulasans()

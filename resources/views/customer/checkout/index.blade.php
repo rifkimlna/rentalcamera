@@ -3,6 +3,7 @@
 @section('title', 'Checkout - Stekpro Multimedia & Broadcast')
 
 @section('content')
+<x-flash-messages />
 <div class="p-4">
     <div class="text-sm mb-4">
         <ul class="flex items-center gap-2 text-[#6e6e73]">
@@ -13,7 +14,7 @@
             @elseif($isLayananBooking)
                 <li><a href="{{ route('customer.layanan.index') }}" class="hover:text-[#1d1d1f] transition-all">Layanan</a></li>
             @else
-                <li><a href="{{ route('customer.cart.index') }}" class="hover:text-[#1d1d1f] transition-all">Keranjang</a></li>
+                <li><a href="{{ route('customer.products.index') }}" class="hover:text-[#1d1d1f] transition-all">Equipment</a></li>
             @endif
             <li>/</li>
             <li class="text-[#1d1d1f] font-medium">Checkout</li>
@@ -46,8 +47,8 @@
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-16 w-16 mx-auto text-[#6e6e73]" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
                     <path stroke-linecap="round" stroke-linejoin="round" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 100 4 2 2 0 000-4z" />
                 </svg>
-                <h4 class="mt-4 mb-2">Keranjang Anda kosong</h4>
-                <p class="text-[#6e6e73] mb-4">Silakan tambahkan produk ke keranjang terlebih dahulu</p>
+                <h4 class="mt-4 mb-2">Belum ada item sewa</h4>
+                <p class="text-[#6e6e73] mb-4">Silakan pilih produk dan tanggal sewa terlebih dahulu</p>
                 <a href="{{ route('customer.products.index') }}" class="btn-dark-apple">
                     <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 me-2 inline" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                         <path stroke-linecap="round" stroke-linejoin="round" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
@@ -389,96 +390,5 @@
 </dialog>
 @endsection
 
-@push('scripts')
-<script>
-document.addEventListener('DOMContentLoaded', function() {
-    const checkoutForm = document.getElementById('checkoutForm');
-    const currentSubtotal = parseFloat(checkoutForm.dataset.subtotal) || 0;
-    let discount = 0;
-    let voucherId = null;
-
-    const applyVoucherBtn = document.getElementById('applyVoucherBtn');
-    if (applyVoucherBtn) {
-        applyVoucherBtn.addEventListener('click', function() {
-            const code = document.getElementById('voucher_code').value.trim();
-            if (!code) { showVoucherMessage('Masukkan kode', 'danger'); return; }
-
-            const params = new URLSearchParams();
-            params.append('_token', document.querySelector('input[name="_token"]').value);
-            params.append('voucher_code', code);
-            params.append('subtotal', currentSubtotal);
-
-            fetch(checkoutForm.dataset.validateUrl, {
-                method: 'POST',
-                body: params,
-                headers: { 'X-Requested-With': 'XMLHttpRequest', 'Content-Type': 'application/x-www-form-urlencoded' }
-            })
-            .then(r => r.json())
-            .then(r => {
-                if (r.success) {
-                    showVoucherMessage(r.message, 'success');
-                    voucherId = r.voucher.id;
-                    discount = r.voucher.diskon;
-                    document.getElementById('voucher_id').value = voucherId;
-                    document.getElementById('diskon').value = discount;
-                    calculateTotal();
-                } else {
-                    showVoucherMessage(r.message, 'danger');
-                    resetVoucher();
-                }
-            })
-            .catch(() => { showVoucherMessage('Error', 'danger'); resetVoucher(); });
-        });
-    }
-
-    function showVoucherMessage(msg, type) {
-        const el = document.getElementById('voucherMessage');
-        if (!el) return;
-        const cls = type === 'success' ? 'bg-[#34c759]/10 text-[#34c759] border-[#34c759]/20' : 'bg-[#d70015]/10 text-[#d70015] border-[#d70015]/20';
-        el.innerHTML = '<div class="rounded-xl border ' + cls + ' flex items-center gap-2 p-2 text-xs"><span>' + msg + '</span></div>';
-    }
-
-    function resetVoucher() {
-        voucherId = null; discount = 0;
-        document.getElementById('voucher_id').value = '';
-        document.getElementById('diskon').value = 0;
-        document.getElementById('voucher_code').value = '';
-        calculateTotal();
-    }
-
-    function calculateTotal() {
-        let total = currentSubtotal - discount;
-        const selected = document.querySelector('input[name="payment_method_id"]:checked');
-        if (selected) {
-            const pct = parseFloat(selected.dataset.feePercentage || 0);
-            const flat = parseFloat(selected.dataset.feeFlat || 0);
-            if (pct > 0) total += total * pct / 100;
-            if (flat > 0) total += flat;
-        }
-        const el = document.getElementById('totalAmount');
-        if (el) el.textContent = 'Rp ' + Math.round(total).toLocaleString('id-ID');
-        const input = document.getElementById('grand_total');
-        if (input) input.value = Math.round(total);
-    }
-
-    document.querySelectorAll('input[name="payment_method_id"]').forEach(m => {
-        m.addEventListener('change', calculateTotal);
-    });
-
-    if (checkoutForm) {
-        checkoutForm.addEventListener('submit', function(e) {
-            const agree = document.getElementById('agree_terms');
-            if (agree && !agree.checked) {
-                e.preventDefault();
-                Swal ? Swal.fire({ icon: 'warning', title: 'Persetujuan Diperlukan', text: 'Harap setujui Syarat & Ketentuan', confirmButtonColor: '#1d1d1f' }) : confirm('Setujui Syarat & Ketentuan');
-                return;
-            }
-            const btn = document.getElementById('payButton');
-            if (btn) { btn.disabled = true; btn.innerHTML = '<span class="inline-block animate-spin w-4 h-4 border-2 border-current border-t-transparent rounded-full me-2"></span>Memproses...'; }
-        });
-    }
-    calculateTotal();
-});
-</script>
-@endpush
+@vite(['resources/js/checkout.js'])
 

@@ -16,14 +16,15 @@ class CustomerMiddleware
      */
     public function handle(Request $request, Closure $next): Response
     {
-        // Check if user is authenticated
+        // Tamu boleh melihat halaman katalog/dashboard customer,
+        // tapi aksi sewa (cart, checkout, booking) dikunci via middleware 'auth' di route.
         if (!Auth::check()) {
-            return redirect()->route('login')->with('error', 'Silakan login terlebih dahulu.');
+            return $next($request);
         }
 
         // Check if user has customer role
         $user = Auth::user();
-        
+
         if ($user->role !== 'customer') {
             return redirect()->route('admin.dashboard')->with('error', 'Anda tidak memiliki akses ke halaman customer.');
         }

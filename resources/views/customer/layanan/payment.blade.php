@@ -3,6 +3,7 @@
 @section('title', 'Pembayaran Layanan')
 
 @section('content')
+<x-flash-messages />
 <div class="min-h-[calc(100vh-5rem)] flex flex-col justify-center p-4 sm:p-6">
     <div class="mx-auto w-full max-w-2xl">
         <!-- Transaction Info -->
@@ -261,9 +262,6 @@
         </div>
         <div id="snap-embed" class="w-full min-h-[420px]"></div>
     </div>
-    <form method="dialog" class="modal-backdrop">
-        <button>tutup</button>
-    </form>
 </dialog>
 @endsection
 
@@ -291,7 +289,7 @@
             payButton.addEventListener('click', function() {
                 // Loading state: cegah klik ganda selama Snap dibuka
                 payButton.disabled = true;
-                payButton.innerHTML = '<svg class="animate-spin h-5 w-5 inline-block align-middle mr-2" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"></path></svg>Memproses...';
+                payButton.innerHTML = '<span class="gooey-loader" style="--gooey-dot:8px;margin-right:8px"><i></i><i></i><i></i></span>Memproses...';
 
                 if (!modal.open) {
                     modal.showModal();

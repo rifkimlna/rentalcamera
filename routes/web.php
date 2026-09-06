@@ -11,7 +11,6 @@ use App\Http\Controllers\Admin\ReportController;
 use App\Http\Controllers\SocialAuthController;
 use App\Http\Controllers\Customer\DashboardController as CustomerDashboardController;
 use App\Http\Controllers\Customer\ProductController as CustomerProductController;
-use App\Http\Controllers\Customer\CartController;
 use App\Http\Controllers\Customer\CheckoutController;
 use App\Http\Controllers\Customer\TransactionController as CustomerTransactionController;
 use App\Http\Controllers\Customer\ReviewController;
@@ -34,11 +33,11 @@ use Illuminate\Support\Facades\Auth;
 */
 
 // Halaman Utama (Landing Page) - Tanpa Auth
+// Catatan: katalog equipment terpusat di halaman customer (customer.products.*)
+// yang bisa dilihat tamu; halaman publik /products sudah dihapus.
 Route::get('/', [HomeController::class, 'index'])->name('home');
 Route::get('/about', [HomeController::class, 'about'])->name('about');
 Route::get('/contact', [HomeController::class, 'contact'])->name('contact');
-Route::get('/products', [HomeController::class, 'products'])->name('products');
-Route::get('/products/{slug}', [HomeController::class, 'productDetail'])->name('product.detail');
 Route::get('/pricing', [HomeController::class, 'pricing'])->name('pricing');
 Route::get('/faq', [HomeController::class, 'faq'])->name('faq');
 
@@ -49,7 +48,11 @@ Route::middleware('guest')->group(function () {
     Route::get('/register', [AuthController::class, 'showRegisterForm'])->name('register');
     Route::post('/register', [AuthController::class, 'register'])->name('register.post');
     Route::get('/forgot-password', [AuthController::class, 'showForgotPasswordForm'])->name('password.request');
-    Route::post('/forgot-password', [AuthController::class, 'sendResetLink'])->name('password.email');
+    // Metode link reset via email DINONAKTIFKAN (SMTP belum dikonfigurasi).
+    // Aktifkan lagi dengan membuka komentar baris di bawah saat email sudah bisa terkirim.
+    // Route::post('/forgot-password', [AuthController::class, 'sendResetLink'])->name('password.email');
+    Route::post('/forgot-password/phone', [AuthController::class, 'verifyResetIdentity'])->middleware('throttle:10,1')->name('password.phone.verify');
+    Route::post('/reset-password/phone', [AuthController::class, 'resetPasswordByPhone'])->middleware('throttle:10,1')->name('password.phone.update');
     Route::get('/reset-password/{token}', [AuthController::class, 'showResetPasswordForm'])->name('password.reset');
     Route::post('/reset-password', [AuthController::class, 'resetPassword'])->name('password.update');
 });
@@ -212,45 +215,56 @@ Route::get('transactions/{transaction}/print', [TransactionController::class, 'p
             Route::post('portfolios/{portfolio}/toggle-active', [App\Http\Controllers\Admin\PortfolioController::class, 'toggleActive'])->name('portfolios.toggle-active');
         
     });
-    
+
+    }); // tutup grup 'auth' — grup customer di bawah terbuka untuk tamu (lihat-lihat)
+
     // ============================================
     // CUSTOMER ROUTES
     // ============================================
     Route::prefix('customer')->name('customer.')->middleware('customer')->group(function () {
+        // Lihat-lihat boleh tanpa login (tamu)
         // Dashboard
         Route::get('/dashboard', [CustomerDashboardController::class, 'index'])->name('dashboard');
-        Route::get('/dashboard/summary', [CustomerDashboardController::class, 'getSummary'])->name('dashboard.summary');
-        Route::get('/dashboard/activity', [CustomerDashboardController::class, 'activity'])->name('dashboard.activity');
-        Route::get('/dashboard/vouchers', [CustomerDashboardController::class, 'vouchers'])->name('dashboard.vouchers');
-        
+
         // Products Browsing
         Route::get('/products', [CustomerProductController::class, 'index'])->name('products.index');
         Route::get('/products/search', [CustomerProductController::class, 'search'])->name('products.search');
         Route::get('/products/category/{slug}', [CustomerProductController::class, 'byCategory'])->name('products.category');
         Route::get('/products/brand/{slug}', [CustomerProductController::class, 'byBrand'])->name('products.brand');
         Route::get('/products/{product}', [CustomerProductController::class, 'show'])->name('products.show');
-        
-        // Cart Management
         Route::post('/products/check-availability', [CustomerProductController::class, 'checkAvailability'])->name('products.check-availability');
-        Route::get('/cart', [CartController::class, 'index'])->name('cart.index');
-        Route::post('/cart/add', [CartController::class, 'add'])->name('cart.add');
-        Route::put('/cart/{cart}', [CartController::class, 'update'])->name('cart.update');
-        Route::delete('/cart/{cart}', [CartController::class, 'destroy'])->name('cart.destroy');
-        Route::post('/cart/update-dates/{cart}', [CartController::class, 'updateDates'])->name('cart.update-dates');
-        Route::get('/cart/count', [CartController::class, 'getCartSummary'])->name('cart.summary');
-        Route::post('/cart/clear', [CartController::class, 'clear'])->name('cart.clear');
-        Route::post('/cart/direct-rent', [CartController::class, 'directRent'])->name('cart.direct-rent');
-        // Checkout Process
+
+        // Studio Browsing
+        Route::get('/studio', [CustomerStudioController::class, 'index'])->name('studio.index');
+        Route::get('/studio/{slug}', [CustomerStudioController::class, 'show'])->name('studio.show');
+
+        // Layanan Browsing
+        Route::get('/layanan', [CustomerLayananController::class, 'index'])->name('layanan.index');
+        Route::get('/layanan/{slug}', [CustomerLayananController::class, 'show'])->name('layanan.show');
+
+        // Callback pembayaran (server-to-server, tanpa sesi login)
+        Route::post('/checkout/midtrans-callback', [CheckoutController::class, 'midtransCallback'])->name('checkout.midtrans-callback');
+        Route::post('/studio/callback', [CustomerStudioController::class, 'callback'])->name('studio.callback');
+        Route::post('/layanan/callback', [CustomerLayananController::class, 'callback'])->name('layanan.callback');
+
+        // Sewa / aksi pribadi wajib login
+        Route::middleware('auth')->group(function () {
+        // Dashboard (data pribadi)
+        Route::get('/dashboard/summary', [CustomerDashboardController::class, 'getSummary'])->name('dashboard.summary');
+        Route::get('/dashboard/activity', [CustomerDashboardController::class, 'activity'])->name('dashboard.activity');
+        Route::get('/dashboard/vouchers', [CustomerDashboardController::class, 'vouchers'])->name('dashboard.vouchers');
+
+        // Checkout Process (sewa langsung)
+        Route::post('/checkout/direct-rent', [CheckoutController::class, 'directRent'])->name('checkout.direct-rent');
         Route::get('/checkout', [CheckoutController::class, 'index'])->name('checkout.index');
         Route::post('/checkout', [CheckoutController::class, 'process'])->name('checkout.process');
         Route::post('/checkout/validate-voucher', [CheckoutController::class, 'checkVoucher'])->middleware('throttle:10,1')->name('checkout.validate-voucher');
         Route::get('/checkout/payment/{transaction}', [CheckoutController::class, 'payment'])->name('checkout.payment');
-        Route::post('/checkout/midtrans-callback', [CheckoutController::class, 'midtransCallback'])->name('checkout.midtrans-callback');
         Route::get('/checkout/success/{transaction}', [CheckoutController::class, 'success'])->name('checkout.success');
         Route::get('/checkout/failed/{transaction}', [CheckoutController::class, 'failed'])->name('checkout.failed');
         Route::get('/checkout/pending/{transaction}', [CheckoutController::class, 'pending'])->name('checkout.pending');
         Route::get('/checkout/check-status/{transaction}', [CheckoutController::class, 'checkStatus'])->name('checkout.check-status');
-        
+
         // Transactions
         Route::get('/transactions', [CustomerTransactionController::class, 'index'])->name('transactions.index');
         Route::get('/transactions/{transaction}', [CustomerTransactionController::class, 'show'])->name('transactions.show');
@@ -259,7 +273,7 @@ Route::get('transactions/{transaction}/print', [TransactionController::class, 'p
         Route::post('/transactions/{transaction}/request-cancel', [CustomerTransactionController::class, 'requestCancel'])->name('transactions.request-cancel');
         Route::post('/transactions/{transaction}/extend', [CustomerTransactionController::class, 'extend'])->name('transactions.extend');
         Route::post('/transactions/{transaction}/confirm-return', [CustomerTransactionController::class, 'confirmReturn'])->name('transactions.confirm-return');
-        
+
         // Reviews
         Route::get('/reviews', [ReviewController::class, 'index'])->name('reviews.index');
         Route::get('/reviews/available', [ReviewController::class, 'available'])->name('reviews.available');
@@ -270,38 +284,28 @@ Route::get('transactions/{transaction}/print', [TransactionController::class, 'p
         Route::put('/reviews/{review}', [ReviewController::class, 'update'])->name('reviews.update');
         Route::delete('/reviews/{review}', [ReviewController::class, 'destroy'])->name('reviews.destroy');
         Route::delete('/reviews/{review}/delete-photo', [ReviewController::class, 'deletePhoto'])->name('reviews.delete-photo');
-        
 
-        // Studio Rental
-        Route::get('/studio', [CustomerStudioController::class, 'index'])->name('studio.index');
-        Route::get('/studio/{slug}', [CustomerStudioController::class, 'show'])->name('studio.show');
+        // Studio Rental (aksi sewa)
         Route::post('/studio/direct-booking', [CustomerStudioController::class, 'directStudio'])->name('studio.direct-booking');
         Route::post('/studio/booking', [CustomerStudioController::class, 'booking'])->name('studio.booking');
         Route::post('/studio/check-voucher', [CustomerStudioController::class, 'checkVoucher'])->middleware('throttle:10,1')->name('studio.check-voucher');
         Route::get('/studio/payment/{id}', [CustomerStudioController::class, 'payment'])->name('studio.payment');
-        Route::post('/studio/callback', [CustomerStudioController::class, 'callback'])->name('studio.callback');
         Route::get('/studio/check-status/{id}', [CustomerStudioController::class, 'checkStatus'])->name('studio.check-status');
         Route::get('/studio/booking/{id}/success', [CustomerStudioController::class, 'bookingSuccess'])->name('studio.booking.success');
         Route::get('/my-bookings/studio', [CustomerStudioController::class, 'myBookings'])->name('studio.my-bookings');
         Route::put('/studio/booking/{id}/cancel', [CustomerStudioController::class, 'bookingCancel'])->name('studio.booking.cancel');
 
-        // Layanan (Services)
-        Route::get('/layanan', [CustomerLayananController::class, 'index'])->name('layanan.index');
-        Route::get('/layanan/{slug}', [CustomerLayananController::class, 'show'])->name('layanan.show');
+        // Layanan (aksi sewa)
         Route::post('/layanan/direct-booking', [CustomerLayananController::class, 'directLayanan'])->name('layanan.direct-booking');
         Route::post('/layanan/booking', [CustomerLayananController::class, 'booking'])->name('layanan.booking');
         Route::post('/layanan/check-voucher', [CustomerLayananController::class, 'checkVoucher'])->middleware('throttle:10,1')->name('layanan.check-voucher');
         Route::get('/layanan/payment/{id}', [CustomerLayananController::class, 'payment'])->name('layanan.payment');
-        Route::post('/layanan/callback', [CustomerLayananController::class, 'callback'])->name('layanan.callback');
         Route::get('/layanan/check-status/{id}', [CustomerLayananController::class, 'checkStatus'])->name('layanan.check-status');
         Route::get('/layanan/booking/{id}/success', [CustomerLayananController::class, 'bookingSuccess'])->name('layanan.booking.success');
         Route::get('/my-bookings/layanan', [CustomerLayananController::class, 'myBookings'])->name('layanan.my-bookings');
         Route::put('/layanan/booking/{id}/cancel', [CustomerLayananController::class, 'bookingCancel'])->name('layanan.booking.cancel');
+        });
     });
-});
-
-// Public Routes (for product details, etc.)
-Route::get('/product/{slug}', [HomeController::class, 'productDetail'])->name('product.public.detail');
 
 // Fallback Route
 Route::fallback(function () {

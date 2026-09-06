@@ -3,7 +3,6 @@
 namespace App\Http\Controllers\Customer;
 
 use App\Http\Controllers\Controller;
-use App\Models\Keranjang;
 
 use App\Models\DetailTransaksis;
 use App\Models\Voucher;
@@ -76,37 +75,36 @@ class CheckoutController extends Controller
                 $keranjangItems = collect([$item]);
             }
         } else {
-            $keranjangItems = Keranjang::with('produk')
-                ->where('user_id', $user->id)
-                ->get();
+            return redirect()->route('customer.products.index')
+                ->with('error', 'Silakan pilih produk dan tanggal sewa terlebih dahulu.');
         }
 
         if (!$isStudioBooking && !$isLayananBooking && $keranjangItems->isEmpty()) {
-            return redirect()->route('customer.cart.index')
-                ->with('error', 'Keranjang kosong. Silakan tambah produk terlebih dahulu.');
+            return redirect()->route('customer.products.index')
+                ->with('error', 'Silakan pilih produk dan tanggal sewa terlebih dahulu.');
         }
 
         if (!$isStudioBooking && !$isLayananBooking) {
             // Validasi tanggal sewa
             foreach ($keranjangItems as $item) {
                 if ($item->tanggal_sewa < now()->toDateString()) {
-                    return redirect()->route('customer.cart.index')
+                    return redirect()->route('customer.products.index')
                         ->with('error', "Tanggal sewa untuk {$item->produk->nama_produk} tidak valid.");
                 }
                 
                 if ($item->lama_sewa < $item->produk->minimum_sewa) {
-                    return redirect()->route('customer.cart.index')
+                    return redirect()->route('customer.products.index')
                         ->with('error', "Minimal sewa untuk {$item->produk->nama_produk} adalah {$item->produk->minimum_sewa} hari.");
                 }
                 
                 if ($item->lama_sewa > $item->produk->maximum_sewa) {
-                    return redirect()->route('customer.cart.index')
+                    return redirect()->route('customer.products.index')
                         ->with('error', "Maksimal sewa untuk {$item->produk->nama_produk} adalah {$item->produk->maximum_sewa} hari.");
                 }
                 
                 // Cek stok tersedia
                 if ($item->produk->stok_tersedia < $item->jumlah) {
-                    return redirect()->route('customer.cart.index')
+                    return redirect()->route('customer.products.index')
                         ->with('error', "Stok {$item->produk->nama_produk} tidak mencukupi. Stok tersedia: {$item->produk->stok_tersedia}");
                 }
             }
@@ -159,6 +157,60 @@ class CheckoutController extends Controller
             'isLayananBooking',
             'bookingData'
         ));
+    }
+
+    /**
+     * Simpan pilihan sewa langsung ke session lalu lanjut ke checkout.
+     * (Pengganti alur keranjang yang sudah dihapus.)
+     */
+    public function directRent(Request $request)
+    {
+        $request->validate([
+            'product_id' => 'required|exists:produk,id',
+            'tanggal_sewa' => 'required|date|after_or_equal:today',
+            'tanggal_kembali' => 'required|date|after:tanggal_sewa',
+            'jumlah' => 'required|integer|min:1',
+            'jam_mulai' => 'nullable|date_format:H:i',
+        ]);
+
+        $product = Produk::findOrFail($request->product_id);
+
+        if ($product->status !== 'available') {
+            return response()->json(['success' => false, 'message' => 'Produk tidak tersedia.'], 400);
+        }
+
+        if ($product->stok_tersedia < $request->jumlah) {
+            return response()->json(['success' => false, 'message' => 'Stok tidak mencukupi.'], 400);
+        }
+
+        $tanggalSewa = new \DateTime($request->tanggal_sewa);
+        $tanggalKembali = new \DateTime($request->tanggal_kembali);
+        $lamaSewa = $tanggalSewa->diff($tanggalKembali)->days;
+        if ($lamaSewa < 1) $lamaSewa = 1;
+
+        if ($lamaSewa < $product->minimum_sewa) {
+            return response()->json(['success' => false, 'message' => 'Minimum sewa ' . $product->minimum_sewa . ' hari.'], 400);
+        }
+
+        if ($lamaSewa > $product->maximum_sewa) {
+            return response()->json(['success' => false, 'message' => 'Maksimum sewa ' . $product->maximum_sewa . ' hari.'], 400);
+        }
+
+        session()->forget(['direct_studio', 'direct_layanan']);
+        session(['direct_rent' => [
+            'product_id' => $product->id,
+            'nama_produk' => $product->nama_produk,
+            'gambar_utama' => $product->gambar_utama,
+            'harga_per_hari' => $product->harga_per_hari,
+            'brand_nama' => $product->brand->nama_brand ?? null,
+            'tanggal_sewa' => $request->tanggal_sewa,
+            'tanggal_kembali' => $request->tanggal_kembali,
+            'jam_mulai' => $request->jam_mulai ?? '08:00',
+            'jumlah' => $request->jumlah,
+            'lama_sewa' => $lamaSewa,
+        ]]);
+
+        return response()->json(['success' => true]);
     }
 
     /**
@@ -383,7 +435,7 @@ class CheckoutController extends Controller
 
             }
             
-            // ===== PRODUCT RENTAL FLOW =====
+            // ===== PRODUCT RENTAL FLOW (langsung tanpa keranjang) =====
             // Cek apakah dari direct rent
             $directRent = session('direct_rent');
             $keranjangItems = collect();
@@ -408,13 +460,11 @@ class CheckoutController extends Controller
                 $item->catatan = null;
                 $keranjangItems = collect([$item]);
             } else {
-                $keranjangItems = Keranjang::with('produk')
-                    ->where('user_id', $user->id)
-                    ->get();
+                throw new \Exception('Silakan pilih produk dan tanggal sewa terlebih dahulu.');
             }
 
             if ($keranjangItems->isEmpty()) {
-                throw new \Exception('Keranjang kosong.');
+                throw new \Exception('Silakan pilih produk dan tanggal sewa terlebih dahulu.');
             }
             
             // Hitung subtotal
@@ -551,12 +601,9 @@ class CheckoutController extends Controller
                 ]);
             }
             
-            // Hapus item dari keranjang (atau dari session untuk direct rent)
+            // Hapus data sewa langsung dari session
             if ($directRent) {
                 session()->forget('direct_rent');
-            } else {
-                $checkedOutIds = $keranjangItems->pluck('id');
-                Keranjang::whereIn('id', $checkedOutIds)->delete();
             }
             
             // Log activity

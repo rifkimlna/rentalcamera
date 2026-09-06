@@ -1,9 +1,10 @@
 @extends('layouts.app')
 
-@section('title', 'Login')
+@section('title', 'Masuk')
 
 @section('content')
-<div class="flex-1 flex items-center justify-center px-4 py-6 sm:py-8 min-h-screen bg-[#f5f5f7]">
+<x-flash-messages />
+<div class="flex-1 flex items-center justify-center px-4 py-10 bg-white">
     <div class="w-full max-w-sm">
         <div class="bg-white rounded-2xl border border-[#f0f0f2] p-8 sm:p-10">
             <div class="text-center mb-6">
@@ -46,10 +47,13 @@
                     @enderror
                 </div>
 
-                <label class="flex items-center gap-2 mb-4 cursor-pointer">
-                    <input type="checkbox" class="w-4 h-4 rounded border-[#d1d5db] text-[#0071e3] focus:ring-[#0071e3]" id="remember" name="remember">
-                    <span class="text-sm text-[#6e6e73]">Ingat saya</span>
-                </label>
+                <div class="flex items-center justify-between mb-4">
+                    <label class="flex items-center gap-2 cursor-pointer">
+                        <input type="checkbox" class="w-4 h-4 rounded border-[#d1d5db] text-[#0071e3] focus:ring-[#0071e3]" id="remember" name="remember">
+                        <span class="text-sm text-[#6e6e73]">Ingat saya</span>
+                    </label>
+                    <a href="{{ route('password.request') }}" class="text-sm text-[#1d1d1f] font-medium hover:underline">Lupa password?</a>
+                </div>
 
                 <button type="submit" class="btn-dark-apple w-full">
                     Masuk
@@ -75,8 +79,8 @@
         </div>
 
         <div class="text-center mt-4">
-            <a href="{{ route('home') }}" class="text-sm text-[#6e6e73] hover:text-[#1d1d1f] transition-colors">
-                &larr; Kembali ke beranda
+            <a href="{{ route('home') }}" class="text-sm text-[#0071e3] hover:underline">
+                Kembali ke beranda
             </a>
         </div>
     </div>

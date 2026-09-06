@@ -5,6 +5,7 @@
 @section('page-title', 'Profil Saya')
 
 @section('content')
+<x-flash-messages />
 <div class="max-w-2xl space-y-6">
     <div class="card-apple-static">
         <div class="p-6">

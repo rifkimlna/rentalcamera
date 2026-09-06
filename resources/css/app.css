@@ -8,28 +8,31 @@
 @plugin "@tailwindcss/forms";
 @plugin "@tailwindcss/typography";
 
-/* ===== APPLE-LIKE DESIGN SYSTEM ===== */
+/* ===== MODERN RENTAL DESIGN SYSTEM — Clean / Glass / Blue #2563EB ===== */
 
 @theme {
-  --font-sans: 'Inter', ui-sans-serif, system-ui, -apple-system, sans-serif;
+  --font-sans: 'Plus Jakarta Sans', 'Inter', ui-sans-serif, system-ui, -apple-system, sans-serif;
 
-  /* Neutral palette */
+  /* Surfaces */
   --color-surface: #ffffff;
-  --color-surface-dim: #f5f5f7;
-  --color-surface-dark: #1d1d1f;
-  --color-surface-darker: #111111;
+  --color-surface-dim: #f8fafc;
+  --color-surface-dark: #0f172a;
+  --color-surface-darker: #020617;
 
-  --color-ink: #1d1d1f;
-  --color-ink-muted: #6e6e73;
-  --color-ink-faint: #86868b;
-  --color-ink-inverse: #f5f5f7;
+  --color-ink: #0f172a;
+  --color-ink-muted: #475569;
+  --color-ink-faint: #94a3b8;
+  --color-ink-inverse: #f8fafc;
 
-  --color-border: #e5e5e7;
-  --color-border-light: #f0f0f2;
+  --color-border: #e2e8f0;
+  --color-border-light: #f1f5f9;
 
-  --color-brand: #0071e3;
-  --color-brand-hover: #0077ed;
-  --color-brand-active: #006edb;
+  /* Brand — minimalis hitam-putih */
+  --color-brand: #111111;
+  --color-brand-hover: #000000;
+  --color-brand-active: #000000;
+  --color-brand-soft: #f5f5f5;
+  --color-brand-ring: rgba(0, 0, 0, 0.12);
 }
 
 /* ===== BASE RESET ===== */
@@ -60,9 +63,11 @@ body {
 
 /* ===== TYPOGRAPHY ===== */
 
-h1, h2, h3, h4, h5, h6 {
-  color: var(--color-ink);
-  letter-spacing: -0.025em;
+@layer base {
+  h1, h2, h3, h4, h5, h6 {
+    color: var(--color-ink);
+    letter-spacing: -0.025em;
+  }
 }
 
 /* ===== CONTAINER ===== */
@@ -79,18 +84,33 @@ h1, h2, h3, h4, h5, h6 {
   @apply mx-auto w-full max-w-[90rem] px-5 sm:px-8 lg:px-12;
 }
 
-/* ===== GLASS EFFECTS ===== */
+/* ===== GLASS EFFECTS (lightweight, precise) ===== */
 
 @utility glass {
   background: rgba(255, 255, 255, 0.72);
-  backdrop-filter: saturate(180%) blur(20px);
-  -webkit-backdrop-filter: saturate(180%) blur(20px);
+  backdrop-filter: saturate(160%) blur(16px);
+  -webkit-backdrop-filter: saturate(160%) blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.6);
+}
+
+@utility glass-strong {
+  background: rgba(255, 255, 255, 0.88);
+  backdrop-filter: saturate(160%) blur(20px);
+  -webkit-backdrop-filter: saturate(160%) blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.7);
+}
+
+@utility glass-card {
+  background: rgba(255, 255, 255, 0.8);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  border: 1px solid rgba(226, 232, 240, 0.9);
 }
 
 @utility glass-dark {
-  background: rgba(29, 29, 31, 0.72);
-  backdrop-filter: saturate(180%) blur(20px);
-  -webkit-backdrop-filter: saturate(180%) blur(20px);
+  background: rgba(15, 23, 42, 0.72);
+  backdrop-filter: saturate(160%) blur(16px);
+  -webkit-backdrop-filter: saturate(160%) blur(16px);
 }
 
 /* ===== SECTION BACKGROUNDS ===== */
@@ -116,14 +136,16 @@ h1, h2, h3, h4, h5, h6 {
 /* ===== BUTTONS ===== */
 
 .btn-primary-apple {
-  @apply inline-flex items-center justify-center px-7 py-3 rounded-full font-medium text-sm transition-all duration-200;
+  @apply inline-flex items-center justify-center px-7 py-3 rounded-full font-semibold text-sm transition-all duration-200;
   background-color: var(--color-brand);
   color: white;
+  box-shadow: 0 8px 20px -6px rgba(0, 0, 0, 0.28);
 }
 
 .btn-primary-apple:hover {
   background-color: var(--color-brand-hover);
-  transform: scale(1.02);
+  transform: translateY(-1px);
+  box-shadow: 0 12px 24px -6px rgba(0, 0, 0, 0.32);
 }
 
 .btn-primary-apple:active {
@@ -148,7 +170,7 @@ h1, h2, h3, h4, h5, h6 {
 }
 
 .btn-ghost-apple:hover {
-  background-color: rgba(0, 113, 227, 0.08);
+  background-color: var(--color-brand-soft);
 }
 
 .btn-outline-apple {
@@ -218,7 +240,7 @@ h1, h2, h3, h4, h5, h6 {
 .input-apple:focus {
   border-color: var(--color-brand);
   background: var(--color-surface);
-  box-shadow: 0 0 0 3px rgba(0, 113, 227, 0.15);
+  box-shadow: 0 0 0 3px var(--color-brand-ring);
 }
 
 .input-apple::placeholder {
@@ -239,7 +261,7 @@ h1, h2, h3, h4, h5, h6 {
 .select-apple:focus {
   border-color: var(--color-brand);
   background-color: var(--color-surface);
-  box-shadow: 0 0 0 3px rgba(0, 113, 227, 0.15);
+  box-shadow: 0 0 0 3px var(--color-brand-ring);
 }
 
 /* ===== BADGES ===== */
@@ -251,8 +273,8 @@ h1, h2, h3, h4, h5, h6 {
 }
 
 @utility badge-brand {
-  @apply inline-flex items-center px-3 py-1 rounded-full text-xs font-medium;
-  background: rgba(0, 113, 227, 0.1);
+  @apply inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold;
+  background: var(--color-brand-soft);
   color: var(--color-brand);
 }
 
@@ -453,4 +475,79 @@ h1, h2, h3, h4, h5, h6 {
   -webkit-line-clamp: 3;
   -webkit-box-orient: vertical;
   overflow: hidden;
+}
+
+/* ===== HOMEPAGE MICRO-INTERACTIONS ===== */
+
+@utility no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+  &::-webkit-scrollbar {
+    display: none;
+  }
+}
+
+.catalog-card {
+  @apply bg-white rounded-2xl overflow-hidden transition-colors duration-200;
+  border: 1px solid rgba(229, 229, 229, 1);
+}
+
+.catalog-card:hover {
+  border-color: rgba(0, 0, 0, 0.4);
+}
+
+.catalog-card img {
+  transition: transform 0.6s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+}
+
+.catalog-card:hover img {
+  transform: scale(1.06);
+}
+
+.tab-pill {
+  transition: all 0.25s ease;
+}
+
+.hero-blob {
+  display: none;
+}
+
+@keyframes tab-in {
+  from { opacity: 0; transform: translateY(12px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.tab-panel-enter {
+  animation: tab-in 0.35s ease-out;
+}
+
+/* ===== MINIMAL HERO — rotasi kata ala animated-hero (tanpa framer-motion) ===== */
+@keyframes hero-word-in {
+  from { opacity: 0; transform: translateY(100%); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes hero-word-out {
+  from { opacity: 1; transform: translateY(0); }
+  to { opacity: 0; transform: translateY(-100%); }
+}
+
+.hero-word {
+  display: inline-block;
+  animation: hero-word-in 0.45s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.hero-word.is-leaving {
+  animation: hero-word-out 0.3s ease-in both;
+}
+
+/* ===== NATIVE DIALOG : selalu di tengah (preflight Tailwind me-reset margin:auto bawaan dialog) ===== */
+dialog {
+  margin: auto;
+  max-width: min(96vw, 100%);
+  max-height: min(92dvh, 100%);
+}
+
+dialog::backdrop {
+  background: rgba(0, 0, 0, 0.45);
 }

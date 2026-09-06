@@ -3,6 +3,7 @@
 @section('title', 'Tentang Kami')
 
 @section('content')
+<x-flash-messages />
 {{-- Hero --}}
 <section class="section-dim">
     <div class="max-w-7xl mx-auto px-5 sm:px-8 lg:px-12 py-24 lg:py-32">
@@ -145,19 +146,6 @@
                 </div>
             @endforeach
         </div>
-    </div>
-</section>
-
-{{-- CTA --}}
-<section class="section-darker">
-    <div class="max-w-7xl mx-auto px-5 sm:px-8 lg:px-12 py-24 text-center">
-        <h2 class="text-3xl md:text-4xl font-bold tracking-tight text-white mb-4">Siap menyewa?</h2>
-        <p class="text-base text-white/50 mb-8">Daftar sekarang dan mulai karya terbaik Anda.</p>
-        @guest
-            <a href="{{ route('register') }}" class="btn-primary-apple">Daftar Sekarang</a>
-        @else
-            <a href="{{ route('customer.products.index') }}" class="btn-primary-apple">Sewa Sekarang</a>
-        @endguest
     </div>
 </section>
 

@@ -3,6 +3,7 @@
 @section('title', 'Verifikasi Email')
 
 @section('content')
+<x-flash-messages />
 <div class="flex-1 flex items-center justify-center px-4 py-6 sm:py-8 min-h-screen bg-[#f5f5f7]">
     <div class="w-full max-w-sm">
         <div class="bg-white rounded-2xl border border-[#f0f0f2] p-8 sm:p-10">

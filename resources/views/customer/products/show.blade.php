@@ -3,6 +3,7 @@
 @section('title', $product->nama_produk)
 
 @section('content')
+<x-flash-messages />
 <div class="max-w-7xl mx-auto px-5 sm:px-8 lg:px-12 py-8 lg:py-12">
 
     {{-- Breadcrumb --}}
@@ -215,7 +216,8 @@
                     <svg class="w-4 h-4 text-[#6e6e73]" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
                     Sewa Sekarang
                 </h3>
-                <form action="{{ route('customer.cart.direct-rent') }}" method="POST" id="rentalForm"
+                @auth
+                <form action="{{ route('customer.checkout.direct-rent') }}" method="POST" id="rentalForm"
                       data-price="{{ $product->harga_per_hari }}"
                       data-stock="{{ $product->stok_tersedia }}">
                     @csrf
@@ -257,6 +259,13 @@
 
                     <button type="submit" class="btn-dark-apple w-full !py-3.5">Sewa Sekarang</button>
                 </form>
+                @else
+                <div class="p-4 rounded-xl bg-[#eff6ff] border border-[#bfdbfe] mb-4">
+                    <p class="text-sm text-[#1d4ed8] mb-3">Silakan login terlebih dahulu untuk menyewa produk ini. Anda tetap bisa lihat-lihat detail, harga, dan ulasan.</p>
+                    <a href="{{ route('login') }}" class="btn-dark-apple w-full !py-3 text-center block">Masuk untuk Sewa</a>
+                    <a href="{{ route('register') }}" class="btn-outline-apple w-full !py-3 mt-2 text-center block">Belum punya akun? Daftar</a>
+                </div>
+                @endauth
 
                 @php $waPhone = '6281234567890'; $waText = rawurlencode('Halo, saya tertarik dengan produk ' . $product->nama_produk . ' - ' . request()->url()); @endphp
                 <a href="https://wa.me/{{ $waPhone }}?text={{ $waText }}" target="_blank" rel="noopener" class="btn-outline-apple w-full !py-3.5 mt-3 text-center flex items-center justify-center gap-2">
@@ -411,12 +420,17 @@
             });
         });
 
-        // Calculate rental days and estimated total
+        // Calculate rental days and estimated total (hanya jika form sewa ada = user login)
         function calculateRental() {
-            const start = new Date(document.getElementById('tanggal_sewa').value);
-            const end = new Date(document.getElementById('tanggal_kembali').value);
-            const quantity = parseInt(document.getElementById('jumlah').value);
-            const pricePerDay = parseFloat(document.getElementById('rentalForm').dataset.price);
+            const startEl = document.getElementById('tanggal_sewa');
+            const endEl = document.getElementById('tanggal_kembali');
+            const qtyEl = document.getElementById('jumlah');
+            const formEl = document.getElementById('rentalForm');
+            if (!startEl || !endEl || !qtyEl || !formEl) return;
+            const start = new Date(startEl.value);
+            const end = new Date(endEl.value);
+            const quantity = parseInt(qtyEl.value);
+            const pricePerDay = parseFloat(formEl.dataset.price);
 
             if (start && end && end > start) {
                 const diffTime = Math.abs(end - start);
@@ -430,7 +444,9 @@
 
         document.querySelectorAll('.rental-date, #jumlah').forEach(el => el.addEventListener('change', calculateRental));
 
-        document.getElementById('tanggal_sewa').addEventListener('change', function() {
+        const sewaInput = document.getElementById('tanggal_sewa');
+        if (sewaInput) {
+        sewaInput.addEventListener('change', function() {
             const returnDate = document.getElementById('tanggal_kembali');
             const nextDay = new Date(this.value);
             nextDay.setDate(nextDay.getDate() + 1);
@@ -446,13 +462,16 @@
         const todayStr = today.toISOString().split('T')[0];
         const tomorrow = new Date(today); tomorrow.setDate(tomorrow.getDate() + 1);
         const tomorrowStr = tomorrow.toISOString().split('T')[0];
-        document.getElementById('tanggal_sewa').min = todayStr;
+        sewaInput.min = todayStr;
         document.getElementById('tanggal_kembali').min = tomorrowStr;
         document.getElementById('tanggal_kembali').value = tomorrowStr;
         calculateRental();
+        }
 
-        // Sewa Sekarang via AJAX
-        document.getElementById('rentalForm').addEventListener('submit', function(e) {
+        // Sewa Sekarang via AJAX (hanya untuk user login)
+        const rentalForm = document.getElementById('rentalForm');
+        if (rentalForm) {
+        rentalForm.addEventListener('submit', function(e) {
             e.preventDefault();
             const form = this;
             const formData = new FormData(form);
@@ -462,13 +481,18 @@
                 headers: { 'X-CSRF-TOKEN': document.querySelector('input[name="_token"]').value },
                 body: formData
             })
-            .then(r => r.json())
+            .then(r => {
+                if (r.status === 401) { window.location.href = '{{ route("login") }}'; return null; }
+                return r.json();
+            })
             .then(data => {
+                if (!data) return;
                 if (data.success) window.location.href = '{{ route("customer.checkout.index") }}';
                 else alert(data.message || 'Terjadi kesalahan');
             })
             .catch(() => alert('Terjadi kesalahan. Silakan coba lagi.'));
         });
+        }
     });
 </script>
 @endpush

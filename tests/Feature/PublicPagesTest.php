@@ -18,7 +18,7 @@ class PublicPagesTest extends TestCase
         $response->assertSee('Stekpro', false);
     }
 
-    public function test_katalog_publik_menampilkan_produk_dan_meta_seo(): void
+    public function test_katalog_customer_bisa_dilihat_tamu(): void
     {
         Produk::create([
             'kode_produk' => 'TEST-PUB-01',
@@ -30,16 +30,13 @@ class PublicPagesTest extends TestCase
             'status' => 'available',
         ]);
 
-        $response = $this->get('/products');
+        $response = $this->get('/customer/products');
 
         $response->assertStatus(200);
         $response->assertSee('Kamera Publik Uji');
-        // Meta SEO dari Fase 4
-        $response->assertSee('name="description"', false);
-        $response->assertSee('property="og:title"', false);
     }
 
-    public function test_detail_produk_publik_tampil_dengan_cta_guest(): void
+    public function test_detail_produk_customer_tampil_dengan_cta_guest(): void
     {
         Produk::create([
             'kode_produk' => 'TEST-PUB-02',
@@ -52,12 +49,18 @@ class PublicPagesTest extends TestCase
             'status' => 'available',
         ]);
 
-        $response = $this->get('/products/lensa-publik-uji');
+        $response = $this->get('/customer/products/lensa-publik-uji');
 
         $response->assertStatus(200);
         $response->assertSee('Lensa Publik Uji');
-        $response->assertSee('Login untuk Menyewa');
-        $response->assertSee('Daftar Gratis');
+        $response->assertSee('Masuk untuk Sewa');
+    }
+
+    public function test_halaman_products_lama_sudah_dihapus(): void
+    {
+        $response = $this->get('/products');
+
+        $response->assertStatus(404);
     }
 
     public function test_halaman_tidak_ditemukan_menampilkan_404_kustom(): void

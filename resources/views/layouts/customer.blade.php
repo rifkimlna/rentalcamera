@@ -11,19 +11,31 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     @vite(['resources/css/app.css', 'resources/js/app.js'])
     <meta name="csrf-token" content="{{ csrf_token() }}">
+    <style>
+        /* Gooey blobs loader (gaya loaders-gooey-blobs, CSS murni) */
+        .gooey-loader{display:inline-flex;align-items:center;gap:4px;filter:url(#gooey-loader-filter);vertical-align:middle}
+        .gooey-loader>i{width:var(--gooey-dot,8px);height:var(--gooey-dot,8px);border-radius:9999px;background:var(--gooey-color,currentColor);animation:gooey-blobs-x 1.5s ease-in-out infinite}
+        .gooey-loader>i:nth-child(2){animation-delay:.2s}
+        .gooey-loader>i:nth-child(3){animation-delay:.4s}
+        @keyframes gooey-blobs-x{0%,100%{transform:translateX(0) scale(1)}25%{transform:translateX(var(--gooey-shift,5px)) scale(1.2)}50%{transform:translateX(0) scale(1)}75%{transform:translateX(calc(var(--gooey-shift,5px) * -1)) scale(1.2)}}
+        @media (prefers-reduced-motion:reduce){.gooey-loader>i{animation:none}}
+    </style>
     <meta name="user-id" content="{{ auth()->id() }}">
     <script>window.Laravel = {csrfToken: '{{ csrf_token() }}'}</script>
     @stack('styles')
 </head>
 <body class="font-sans antialiased bg-[#f5f5f7] min-h-screen" x-data="{ sidebarOpen: false }">
 
+    {{-- Filter goo untuk gooey-loader (definisi global, disembunyikan) --}}
+    <svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false"><defs><filter id="gooey-loader-filter"><feGaussianBlur in="SourceGraphic" stdDeviation="3" result="blur"/><feColorMatrix in="blur" mode="matrix" values="1 0 0 0 0  0 1 0 0 0  0 0 1 0 0  0 0 0 18 -7" result="gooey"/><feBlend in="SourceGraphic" in2="gooey"/></filter></defs></svg>
+
     {{-- Mobile Sidebar Overlay --}}
-    <div x-show="sidebarOpen" x-cloak @click="sidebarOpen = false" class="fixed inset-0 bg-black/30 z-[60] lg:hidden" x-transition:enter="transition ease-out duration-200" x-transition:enter-start="opacity-0" x-transition:enter-end="opacity-100" x-transition:leave="transition ease-in duration-150" x-transition:leave-start="opacity-100" x-transition:leave-end="opacity-0"></div>
+    <div x-show="sidebarOpen" x-cloak @click="sidebarOpen = false" class="fixed inset-0 bg-black/30 z-40 lg:hidden" x-transition:enter="transition ease-out duration-200" x-transition:enter-start="opacity-0" x-transition:enter-end="opacity-100" x-transition:leave="transition ease-in duration-150" x-transition:leave-start="opacity-100" x-transition:leave-end="opacity-0"></div>
 
     <div class="flex min-h-screen">
 
-        {{-- SIDEBAR --}}
-        <aside :class="sidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'" class="fixed top-0 left-0 bottom-0 w-64 bg-white border-r border-[#e5e5e7] z-[70] lg:z-30 transition-transform duration-200 ease-out overflow-y-auto flex flex-col lg:sticky lg:top-0 lg:h-screen">
+        {{-- SIDEBAR (ukuran & struktur disamakan dengan admin: w-64) --}}
+        <aside :class="sidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'" class="fixed top-0 left-0 bottom-0 w-64 bg-white border-r border-[#e5e5e7] z-50 transition-transform duration-200 ease-out overflow-y-auto flex flex-col lg:sticky lg:top-0 lg:h-screen">
 
             {{-- Sidebar Header --}}
             <div class="px-5 py-5 border-b border-[#f0f0f2]">
@@ -38,10 +50,8 @@
 
             {{-- Sidebar Nav --}}
             <nav class="flex-1 px-3 py-4">
-                <div class="mb-1">
-                    <p class="px-3 mb-2 text-[10px] font-semibold text-[#86868b] uppercase tracking-wider">Menu</p>
-                    <ul class="space-y-0.5">
-                        <li>
+                <ul class="space-y-0.5">
+                    <li>
                             <a href="{{ route('customer.dashboard') }}" class="flex items-center gap-3 px-3 py-2.5 text-sm rounded-xl transition-colors {{ request()->routeIs('customer.dashboard') ? 'bg-[#f5f5f7] font-medium text-[#1d1d1f]' : 'text-[#6e6e73] hover:bg-[#f5f5f7] hover:text-[#1d1d1f]' }}">
                                 <svg class="w-[18px] h-[18px] shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/></svg>
                                 Dashboard
@@ -84,19 +94,17 @@
                             </a>
                         </li>
                     </ul>
-                </div>
 
                 <div class="border-t border-[#f0f0f2] my-4"></div>
 
-                <div>
-                    <p class="px-3 mb-2 text-[10px] font-semibold text-[#86868b] uppercase tracking-wider">Lainnya</p>
-                    <ul class="space-y-0.5">
-                        <li>
-                            <a href="{{ route('home') }}" class="flex items-center gap-3 px-3 py-2.5 text-sm rounded-xl text-[#6e6e73] hover:bg-[#f5f5f7] hover:text-[#1d1d1f] transition-colors">
+                <ul class="space-y-0.5">
+                    <li>
+                        <a href="{{ route('home') }}" class="flex items-center gap-3 px-3 py-2.5 text-sm rounded-xl text-[#6e6e73] hover:bg-[#f5f5f7] hover:text-[#1d1d1f] transition-colors">
                                 <svg class="w-[18px] h-[18px] shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M10 19l-7-7m0 0l7-7m-7 7h18"/></svg>
                                 Kembali ke Beranda
                             </a>
                         </li>
+                        @auth
                         <li>
                             <form method="POST" action="{{ route('logout') }}">
                                 @csrf
@@ -106,8 +114,15 @@
                                 </button>
                             </form>
                         </li>
-                    </ul>
-                </div>
+                        @else
+                        <li>
+                            <a href="{{ route('login') }}" class="flex items-center gap-3 px-3 py-2.5 text-sm rounded-xl text-[#1d1d1f] font-medium hover:bg-[#f5f5f7] transition-colors">
+                                <svg class="w-[18px] h-[18px] shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/></svg>
+                                Masuk / Daftar
+                            </a>
+                        </li>
+                        @endauth
+                </ul>
             </nav>
         </aside>
 
@@ -134,15 +149,19 @@
 
                     {{-- Right actions --}}
                     <div class="flex items-center gap-2">
-                        <a href="{{ route('customer.cart.index') }}" class="lg:hidden relative p-2 -mr-1">
-                            <svg class="w-5 h-5 text-[#1d1d1f]" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z"/></svg>
-                        </a>
-                        <div class="hidden lg:flex items-center gap-2">
-                            <div class="w-8 h-8 rounded-full bg-[#1d1d1f] text-white flex items-center justify-center text-xs font-semibold">
-                                {{ strtoupper(substr(auth()->user()->nama, 0, 1)) }}
+                        @auth
+                            <div class="hidden lg:flex items-center gap-2">
+                                <div class="w-8 h-8 rounded-full bg-[#1d1d1f] text-white flex items-center justify-center text-xs font-semibold">
+                                    {{ strtoupper(substr(auth()->user()->nama, 0, 1)) }}
+                                </div>
+                                <span class="text-sm text-[#6e6e73]">{{ auth()->user()->nama }}</span>
                             </div>
-                            <span class="text-sm text-[#6e6e73]">{{ auth()->user()->nama }}</span>
-                        </div>
+                        @else
+                            <div class="hidden lg:flex items-center gap-2">
+                                <a href="{{ route('login') }}" class="text-sm font-medium text-[#1d1d1f] hover:text-[#6e6e73] transition-colors px-3 py-2">Masuk</a>
+                                <a href="{{ route('register') }}" class="text-sm font-medium text-white bg-[#1d1d1f] hover:bg-[#333] rounded-xl px-4 py-2 transition-colors">Daftar</a>
+                            </div>
+                        @endauth
                     </div>
                 </div>
             </header>

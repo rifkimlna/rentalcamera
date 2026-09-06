@@ -4,6 +4,7 @@
 @section('page-title', 'Detail Ulasan')
 
 @section('content')
+<x-flash-messages />
 <div>
     <div class="flex items-center justify-between mb-4">
         <h1 class="text-2xl font-bold text-[#1d1d1f]">Detail Ulasan</h1>

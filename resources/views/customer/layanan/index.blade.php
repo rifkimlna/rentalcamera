@@ -3,6 +3,7 @@
 @section('title', 'Layanan - Stekpro Multimedia & Broadcast')
 
 @section('content')
+<x-flash-messages />
 <div>
     <div class="flex items-center justify-between mb-4 sm:mb-6 gap-2">
         <div class="min-w-0">
@@ -94,7 +95,12 @@
 
                 <div class="flex gap-1.5 sm:gap-2">
                     <a href="{{ route('customer.layanan.show', $layanan->slug) }}" class="btn-outline-apple flex-1 !text-[11px] sm:!text-xs lg:!text-sm !py-1.5 sm:!py-2">Detail</a>
-                    <button type="button" class="btn-dark-apple flex-1 !text-[11px] sm:!text-xs lg:!text-sm !py-1.5 sm:!py-2" onclick="openLayananModal({{ $layanan->id }})">Sewa</button>
+                    {{-- Tamu diarahkan ke detail dulu (sama seperti Equipment); user login langsung buka modal booking --}}
+                    @auth
+                        <button type="button" class="btn-dark-apple flex-1 !text-[11px] sm:!text-xs lg:!text-sm !py-1.5 sm:!py-2" onclick="openLayananModal({{ $layanan->id }})">Sewa</button>
+                    @else
+                        <a href="{{ route('customer.layanan.show', $layanan->slug) }}" class="btn-dark-apple flex-1 !text-[11px] sm:!text-xs lg:!text-sm !py-1.5 sm:!py-2 text-center">Sewa</a>
+                    @endauth
                 </div>
             </div>
         </div>
@@ -157,8 +163,15 @@
 @push('scripts')
 <script>
     const layanansData = {!! json_encode($layanansJson) !!};
+    const LAYANAN_IS_GUEST = {{ auth()->check() ? 'false' : 'true' }};
+    const LAYANAN_LOGIN_URL = '{{ route("login") }}';
 
     function openLayananModal(layananId) {
+        if (LAYANAN_IS_GUEST) {
+            alert('Silakan login terlebih dahulu untuk menyewa.');
+            window.location.href = LAYANAN_LOGIN_URL;
+            return;
+        }
         const layanan = layanansData[layananId];
         if (!layanan) return;
 
@@ -243,9 +256,10 @@
     // AJAX booking submission -> store in session, go to checkout
     document.getElementById('layananBookingForm').addEventListener('submit', function(e) {
         e.preventDefault();
+        if (LAYANAN_IS_GUEST) { window.location.href = LAYANAN_LOGIN_URL; return; }
         const btn = document.getElementById('modalBookingBtn');
         btn.disabled = true;
-        btn.innerHTML = '<span class="inline-block animate-spin w-4 h-4 border-2 border-current border-t-transparent rounded-full"></span> Memproses...';
+        btn.innerHTML = '<span class="gooey-loader" style="--gooey-dot:7px;margin-right:8px"><i></i><i></i><i></i></span>Memproses...';
 
         const formData = new FormData(this);
         formData.append('_token', '{{ csrf_token() }}');
@@ -255,8 +269,12 @@
             headers: { 'X-CSRF-TOKEN': '{{ csrf_token() }}', 'X-Requested-With': 'XMLHttpRequest' },
             body: formData
         })
-        .then(res => res.json())
+        .then(res => {
+            if (res.status === 401) { window.location.href = LAYANAN_LOGIN_URL; return null; }
+            return res.json();
+        })
         .then(data => {
+            if (!data) return;
             if (data.success) {
                 document.getElementById('layananModal').close();
                 window.location.href = '{{ route("customer.checkout.index") }}';

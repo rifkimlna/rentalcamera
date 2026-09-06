@@ -1,6 +1,26 @@
 <?php $__env->startSection('title', 'Dashboard - Stekpro Multimedia & Broadcast'); ?>
 
 <?php $__env->startSection('content'); ?>
+<?php if (isset($component)) { $__componentOriginal5b09c79149dfb771c232996af5f9dae4 = $component; } ?>
+<?php if (isset($attributes)) { $__attributesOriginal5b09c79149dfb771c232996af5f9dae4 = $attributes; } ?>
+<?php $component = Illuminate\View\AnonymousComponent::resolve(['view' => 'components.flash-messages','data' => []] + (isset($attributes) && $attributes instanceof Illuminate\View\ComponentAttributeBag ? $attributes->all() : [])); ?>
+<?php $component->withName('flash-messages'); ?>
+<?php if ($component->shouldRender()): ?>
+<?php $__env->startComponent($component->resolveView(), $component->data()); ?>
+<?php if (isset($attributes) && $attributes instanceof Illuminate\View\ComponentAttributeBag): ?>
+<?php $attributes = $attributes->except(\Illuminate\View\AnonymousComponent::ignoredParameterNames()); ?>
+<?php endif; ?>
+<?php $component->withAttributes([]); ?>
+<?php echo $__env->renderComponent(); ?>
+<?php endif; ?>
+<?php if (isset($__attributesOriginal5b09c79149dfb771c232996af5f9dae4)): ?>
+<?php $attributes = $__attributesOriginal5b09c79149dfb771c232996af5f9dae4; ?>
+<?php unset($__attributesOriginal5b09c79149dfb771c232996af5f9dae4); ?>
+<?php endif; ?>
+<?php if (isset($__componentOriginal5b09c79149dfb771c232996af5f9dae4)): ?>
+<?php $component = $__componentOriginal5b09c79149dfb771c232996af5f9dae4; ?>
+<?php unset($__componentOriginal5b09c79149dfb771c232996af5f9dae4); ?>
+<?php endif; ?>
 <div class="space-y-4 sm:space-y-5">
 
     <!-- Hero / Welcome -->
@@ -9,12 +29,16 @@
             <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                 <div class="flex items-center gap-4 min-w-0">
                     <div class="w-14 h-14 rounded-2xl bg-white/20 backdrop-blur flex items-center justify-center text-2xl font-bold shrink-0">
-                        <?php echo e(substr(Auth::user()->nama, 0, 1)); ?>
-
+                        <?php if(auth()->guard()->check()): ?><?php echo e(substr(Auth::user()->nama, 0, 1)); ?><?php else: ?> S <?php endif; ?>
                     </div>
                     <div class="min-w-0">
-                        <h2 class="text-xl sm:text-2xl font-bold truncate">Halo, <?php echo e(Auth::user()->nama); ?>!</h2>
-                        <p class="mb-0 text-sm opacity-90">Sewa kamera, studio, dan layanan jadi mudah di sini.</p>
+                        <?php if(auth()->guard()->check()): ?>
+                            <h2 class="text-xl sm:text-2xl font-bold truncate">Halo, <?php echo e(Auth::user()->nama); ?>!</h2>
+                            <p class="mb-0 text-sm opacity-90">Sewa kamera, studio, dan layanan jadi mudah di sini.</p>
+                        <?php else: ?>
+                            <h2 class="text-xl sm:text-2xl font-bold truncate">Halo, selamat datang!</h2>
+                            <p class="mb-0 text-sm opacity-90">Lihat-lihat dulu, <a href="<?php echo e(route('login')); ?>" class="underline font-semibold">login</a> untuk mulai sewa.</p>
+                        <?php endif; ?>
                     </div>
                 </div>
             </div>
@@ -208,13 +232,14 @@
 
         <!-- Sidebar -->
         <div class="space-y-4 sm:space-y-5">
+            <?php if(auth()->guard()->check()): ?>
             <div class="card-apple-static">
                 <div class="p-5">
                     <h5 class="font-semibold mb-4">Verifikasi Akun</h5>
                     <div class="space-y-3">
                         <div class="flex items-center justify-between rounded-xl border border-[#f0f0f2] px-3 py-2.5">
                             <span class="text-sm text-[#6e6e73]">Email</span>
-                            <?php if($user->email_verified_at): ?>
+                            <?php if($user && $user->email_verified_at): ?>
                                 <span class="badge-success !text-[10px] !px-2 !py-0.5">Terverifikasi</span>
                             <?php else: ?>
                                 <span class="badge-apple !text-[10px] !px-2 !py-0.5">Belum Verifikasi</span>
@@ -222,16 +247,27 @@
                         </div>
                         <div class="flex items-center justify-between rounded-xl border border-[#f0f0f2] px-3 py-2.5">
                             <span class="text-sm text-[#6e6e73]">Telepon</span>
-                            <?php if($user->telepon_verified_at): ?>
+                            <?php if($user && $user->telepon_verified_at): ?>
                                 <span class="badge-success !text-[10px] !px-2 !py-0.5">Terverifikasi</span>
                             <?php else: ?>
                                 <span class="badge-apple !text-[10px] !px-2 !py-0.5">Belum Verifikasi</span>
                             <?php endif; ?>
                         </div>
                     </div>
-                    <a href="<?php echo e(route('profile')); ?>" class="btn-outline-apple w-full mt-4">Kelola Profil</a>
+                    <a href="<?php echo e(route('profile')); ?>#verifikasi-telepon" class="btn-dark-apple w-full mt-4">Verifikasi Sekarang</a>
+                    <a href="<?php echo e(route('profile')); ?>" class="btn-outline-apple w-full mt-2">Kelola Profil</a>
                 </div>
             </div>
+            <?php else: ?>
+            <div class="card-apple-static">
+                <div class="p-5 text-center">
+                    <h5 class="font-semibold mb-2">Mau sewa equipment?</h5>
+                    <p class="text-sm text-[#6e6e73] mb-4">Login dulu untuk sewa, bayar, dan lacak transaksi.</p>
+                    <a href="<?php echo e(route('login')); ?>" class="btn-dark-apple w-full">Masuk untuk Sewa</a>
+                    <a href="<?php echo e(route('register')); ?>" class="btn-outline-apple w-full mt-2">Belum punya akun? Daftar</a>
+                </div>
+            </div>
+            <?php endif; ?>
 
             <!-- Transactions to review -->
             <?php if($transactionsToReview->isNotEmpty()): ?>

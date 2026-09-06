@@ -3,15 +3,8 @@
 @section('title', 'Transaksi yang Dapat Diulas - Stekpro Multimedia & Broadcast')
 
 @section('content')
+<x-flash-messages />
 <div class="p-4">
-    <div class="text-sm mb-4">
-        <ul>
-            <li><a href="{{ route('customer.dashboard') }}">Dashboard</a></li>
-            <li><a href="{{ route('customer.reviews.index') }}">Ulasan Saya</a></li>
-            <li>Transaksi yang Dapat Diulas</li>
-        </ul>
-    </div>
-
     <div class="card bg-white shadow-md">
         <div class="p-5">
             <h5 class="font-semibold text-lg mb-4">

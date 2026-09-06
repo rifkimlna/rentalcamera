@@ -5,6 +5,7 @@
 @section('page-title', 'Riwayat Sewa')
 
 @section('content')
+<x-flash-messages />
 <div class="space-y-6">
     @if($totalSpending > 0)
     <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">

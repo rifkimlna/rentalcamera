@@ -3,6 +3,7 @@
 @section('title', 'Laporan User')
 
 @section('content')
+<x-flash-messages />
 <div class="max-w-7xl mx-auto">
     <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-6">
         <h1 class="text-lg font-semibold">Laporan User</h1>

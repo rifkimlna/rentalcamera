@@ -11,6 +11,7 @@
 @endpush
 
 @section('content')
+<x-flash-messages />
 <div class="space-y-4">
     <div class="flex items-center gap-2">
         <a href="{{ request()->fullUrlWithQuery(['filter' => 'all']) }}" class="rounded-xl px-4 py-2 text-sm font-medium transition-all {{ request('filter', 'all') === 'all' ? 'bg-[#1d1d1f] text-white' : 'text-[#6e6e73] hover:bg-[#f5f5f7]' }}">Semua</a>

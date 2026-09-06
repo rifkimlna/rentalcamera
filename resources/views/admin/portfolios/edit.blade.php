@@ -4,6 +4,7 @@
 @section('page-title', 'Edit Portfolio')
 
 @section('content')
+<x-flash-messages />
 <div class="max-w-2xl mx-auto">
     <div class="bg-white rounded-2xl border border-[#f0f0f2]">
         <div class="p-6">

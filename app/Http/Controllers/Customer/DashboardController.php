@@ -17,6 +17,24 @@ class DashboardController extends Controller
      */
     public function index()
     {
+        // Tamu boleh melihat dashboard, tapi datanya kosong
+        // dan aksi sewa tetap wajib login (via middleware 'auth' di route).
+        if (!Auth::check()) {
+            return view('customer.dashboard.index', [
+                'user' => null,
+                'recentTransactions' => collect(),
+                'stats' => [
+                    'total_orders' => 0,
+                    'completed_orders' => 0,
+                    'pending_orders' => 0,
+                    'total_spent' => 0,
+                ],
+                'upcomingRentals' => collect(),
+                'transactionsToReview' => collect(),
+                'balance' => ['points' => 0],
+            ]);
+        }
+
         /** @var User $user */
         $user = Auth::user();
         
@@ -27,10 +45,6 @@ class DashboardController extends Controller
             ->limit(5)
             ->get();
         
-
-        
-        // Cart items count
-        $cartCount = $user->keranjangs()->count();
         
         // Statistics
         $totalSpent = $user->transaksis()
@@ -75,7 +89,6 @@ class DashboardController extends Controller
         return view('customer.dashboard.index', compact(
             'user',
             'recentTransactions',
-            'cartCount',
             'stats',
             'upcomingRentals',
             'transactionsToReview',

@@ -3,6 +3,7 @@
 @section('title', 'Edit Ulasan - Stekpro Multimedia & Broadcast')
 
 @section('content')
+<x-flash-messages />
 <div class="p-4">
     <div class="flex justify-center">
         <div class="w-full max-w-3xl">

@@ -326,7 +326,7 @@ public function createManual()
         $user = User::find($validated['user_id']);
         
         DB::beginTransaction();
-        
+
         // Create transaction
         $transaction = new Transaksis();
         $transaction->uuid = Str::uuid();
@@ -343,29 +343,35 @@ public function createManual()
         $transaction->payment_method_id = $validated['payment_method_id'];
         $transaction->status_pembayaran = $validated['payment_status'];
         $transaction->status_transaksi = 'menunggu_pembayaran';
-        
+
         // Set payment details if provided
         if ($request->filled('bank')) $transaction->bank = $validated['bank'];
         if ($request->filled('va_number')) $transaction->va_number = $validated['va_number'];
         if ($request->filled('payment_code')) $transaction->payment_code = $validated['payment_code'];
         if ($request->filled('paid_at')) $transaction->paid_at = Carbon::parse($validated['paid_at']);
-        
+
         // Calculate totals
         $subtotal = 0;
-        
+
         foreach ($validated['products'] as $productData) {
-            $product = Produk::find($productData['id']);
             $quantity = $productData['quantity'];
-            
+
+            // Ambil produk dengan row lock untuk mencegah race condition
+            $product = Produk::lockForUpdate()->find($productData['id']);
+
+            if (!$product) {
+                throw new \Exception("Produk tidak ditemukan: {$productData['id']}");
+            }
+
             // Check stock availability
             if ($product->stok_tersedia < $quantity) {
                 throw new \Exception("Stok tidak cukup untuk {$product->nama_produk}. Tersedia: {$product->stok_tersedia}, Dibutuhkan: {$quantity}");
             }
-            
+
             $productSubtotal = $product->harga_per_hari * $quantity * $lamaSewa;
             $subtotal += $productSubtotal;
-            
-            // Update product stock
+
+            // Update product stock (dalam transaction yang sama)
             $product->stok_dipinjam += $quantity;
             $product->stok_tersedia = $product->stok_total - $product->stok_dipinjam - $product->stok_rusak;
             $product->save();
