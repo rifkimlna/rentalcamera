@@ -118,9 +118,13 @@
                         <td class="text-[#6e6e73] text-sm">{{ ($users->currentPage() - 1) * $users->perPage() + $loop->iteration }}</td>
                         <td>
                             <div class="flex items-center gap-2">
+                                @if($user->foto_profil)
+                                    <img src="{{ asset('storage/' . $user->foto_profil) }}" alt="Foto profil {{ $user->nama }}" class="w-8 h-8 rounded-full object-cover">
+                                @else
                                 <div class="bg-[#f5f5f7] rounded-full flex items-center justify-center w-8 h-8">
                                     <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-[#6e6e73]" viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 3.6-7 8-7s8 3 8 7v1H4v-1z"/></svg>
                                 </div>
+                                @endif
                                 <div>
                                     <div class="font-medium">{{ $user->nama }}</div>
                                 </div>
