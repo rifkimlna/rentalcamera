@@ -21,7 +21,7 @@
             <div class="p-5">
                 <div class="flex items-center gap-3">
                     <div class="bg-[#0071e3]/10 p-3 rounded">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-[#0071e3]" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m13.5-9a2.5 2.5 0 11-5 0 2.5 2.5 0 015 0z"/></svg>
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-[#0071e3]" viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 3.6-7 8-7s8 3 8 7v1H4v-1z"/></svg>
                     </div>
                     <div>
                         <h5 class="text-lg font-bold">{{ App\Models\User::count() }}</h5>

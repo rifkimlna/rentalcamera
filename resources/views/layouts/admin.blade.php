@@ -76,7 +76,7 @@
                 <ul class="space-y-0.5">
                     <li>
                         <a href="{{ route('admin.users.index') }}" class="flex items-center gap-3 px-3 py-2.5 text-sm rounded-xl transition-colors {{ request()->routeIs('admin.users*') ? 'bg-[#f5f5f7] font-medium text-[#1d1d1f]' : 'text-[#6e6e73] hover:bg-[#f5f5f7] hover:text-[#1d1d1f]' }}">
-                            <svg class="w-[18px] h-[18px] shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m13.5-9a2.5 2.5 0 11-5 0 2.5 2.5 0 015 0z"/></svg>
+                            <svg class="w-[18px] h-[18px] shrink-0" viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 3.6-7 8-7s8 3 8 7v1H4v-1z"/></svg>
                             Pengguna
                         </a>
                     </li>
