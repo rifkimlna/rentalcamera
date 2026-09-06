@@ -13,35 +13,37 @@
 
     <!-- Filter -->
     <div class="card-apple-static mb-4 sm:mb-6 p-3 sm:p-4 lg:p-5">
-        <!-- Desktop: grid -->
-        <form method="GET" class="hidden lg:grid lg:grid-cols-3 gap-4 items-end">
-            <div>
-                <label class="block text-xs font-medium text-[#86868b] mb-1.5">Cari Layanan</label>
-                <input type="text" name="search" class="input-apple" placeholder="Cari..." value="{{ request('search') }}">
+        <form method="GET" action="{{ route('customer.layanan.index') }}">
+            <!-- Desktop: grid -->
+            <div class="hidden lg:grid lg:grid-cols-3 gap-4">
+                <div class="col-span-2">
+                    <label class="block text-xs font-medium text-[#86868b] mb-1.5">Cari Layanan</label>
+                    <input type="text" name="search" class="input-apple" placeholder="Cari layanan..." value="{{ request('search') }}">
+                </div>
+                <div class="flex items-end gap-2">
+                    <button type="submit" class="btn-dark-apple !px-4 !py-2.5 flex-1">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-4.35-4.35m1.35-5.15a6.5 6.5 0 11-13 0 6.5 6.5 0 0113 0z"/></svg>
+                        Cari
+                    </button>
+                    <a href="{{ route('customer.layanan.index') }}" class="btn-outline-apple !px-3 !py-2.5" title="Reset">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
+                    </a>
+                </div>
             </div>
-            <div></div>
-            <div class="flex items-end gap-2">
-                <button type="submit" class="btn-dark-apple flex-1">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-4.35-4.35m1.35-5.15a6.5 6.5 0 11-13 0 6.5 6.5 0 0113 0z"/></svg>
-                </button>
-                <a href="{{ route('customer.layanan.index') }}" class="btn-outline-apple">
+
+            <!-- Mobile: compact -->
+            <div class="lg:hidden flex items-center gap-2">
+                <div class="relative flex-1">
+                    <span class="absolute left-3 top-1/2 -translate-y-1/2 text-[#86868b]">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-4.35-4.35m1.35-5.15a6.5 6.5 0 11-13 0 6.5 6.5 0 0113 0z"/></svg>
+                    </span>
+                    <input type="text" name="search" class="input-apple !pl-9" placeholder="Cari layanan..." value="{{ request('search') }}">
+                </div>
+                <button type="submit" class="btn-dark-apple !px-5 !py-3">Cari</button>
+                <a href="{{ route('customer.layanan.index') }}" class="btn-outline-apple !px-3 !py-3" title="Reset">
                     <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
                 </a>
             </div>
-        </form>
-
-        <!-- Mobile: compact -->
-        <form method="GET" class="lg:hidden flex items-center gap-2">
-            <div class="relative flex-1">
-                <span class="absolute left-3 top-1/2 -translate-y-1/2 text-[#86868b]">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-4.35-4.35m1.35-5.15a6.5 6.5 0 11-13 0 6.5 6.5 0 0113 0z"/></svg>
-                </span>
-                <input type="text" name="search" class="input-apple !pl-9" placeholder="Cari layanan..." value="{{ request('search') }}">
-            </div>
-            <a href="{{ route('customer.layanan.index') }}" class="btn-outline-apple !px-3" title="Reset">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
-            </a>
-            <button type="submit" class="btn-dark-apple">Cari</button>
         </form>
     </div>
 
