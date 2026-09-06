@@ -21,11 +21,9 @@ class UserController extends Controller
     {
         $query = User::query();
         
-        // Filter berdasarkan role
+        // Filter berdasarkan role (kosong = semua role)
         if ($request->filled('role')) {
             $query->where('role', $request->role);
-        } else {
-            $query->where('role', 'customer'); // Default filter customers
         }
         
         // Filter berdasarkan status
@@ -88,6 +86,7 @@ class UserController extends Controller
         $roles = [
             'customer' => 'Customer',
             'admin' => 'Admin',
+            'superadmin' => 'Super Admin',
         ];
         
         $statuses = [
@@ -105,12 +104,19 @@ class UserController extends Controller
      */
     public function store(Request $request)
     {
+        // Hanya superadmin yang boleh membuat superadmin baru
+        if ($request->role === 'superadmin' && Auth::user()?->role !== 'superadmin') {
+            return redirect()->back()
+                ->with('error', 'Hanya super admin yang dapat membuat super admin.')
+                ->withInput();
+        }
+
         $request->validate([
             'nama' => 'required|string|max:100',
             'email' => 'required|email|unique:users,email',
             'password' => 'required|min:6|confirmed',
             'telepon' => 'required|string|max:20',
-            'role' => 'required|in:customer,admin',
+            'role' => 'required|in:customer,admin,superadmin',
             'status' => 'required|in:active,inactive,suspended,pending_verification',
             'poin_reward' => 'nullable|integer|min:0',
             'alamat' => 'nullable|string',
@@ -162,6 +168,7 @@ class UserController extends Controller
         $roles = [
             'customer' => 'Customer',
             'admin' => 'Admin',
+            'superadmin' => 'Super Admin',
         ];
         
         $statuses = [
@@ -181,11 +188,25 @@ class UserController extends Controller
     {
         $user = User::findOrFail($id);
         
+        // Cegah mengubah role diri sendiri (anti lockout)
+        if ((int) $id === (int) Auth::id() && $request->role !== $user->role) {
+            return redirect()->back()
+                ->with('error', 'Tidak dapat mengubah role akun sendiri.')
+                ->withInput();
+        }
+
+        // Hanya superadmin yang boleh memberikan role superadmin
+        if ($request->role === 'superadmin' && Auth::user()?->role !== 'superadmin') {
+            return redirect()->back()
+                ->with('error', 'Hanya super admin yang dapat memberikan role super admin.')
+                ->withInput();
+        }
+
         $request->validate([
             'nama' => 'required|string|max:100',
             'email' => 'required|email|unique:users,email,' . $user->id,
             'telepon' => 'required|string|max:20',
-            'role' => 'required|in:customer,admin',
+            'role' => 'required|in:customer,admin,superadmin',
             'status' => 'required|in:active,inactive,suspended,pending_verification',
             'poin_reward' => 'nullable|integer|min:0',
             'alamat' => 'nullable|string',
@@ -320,6 +341,12 @@ class UserController extends Controller
         $user = User::findOrFail($id);
         $currentUser = Auth::user();
         
+        // Cegah mengubah role diri sendiri (anti lockout)
+        if ($currentUser && (int) $id === (int) $currentUser->id && $request->role !== $user->role) {
+            return redirect()->back()
+                ->with('error', 'Tidak dapat mengubah role akun sendiri.');
+        }
+
         // Prevent non-superadmin from creating superadmin
         if ($request->role === 'superadmin' && $currentUser && $currentUser->role !== 'superadmin') {
             return redirect()->back()
