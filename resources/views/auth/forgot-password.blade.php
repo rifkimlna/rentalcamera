@@ -12,6 +12,8 @@
                 <p class="text-[#6e6e73] text-sm mt-1.5">Verifikasi identitas dengan email dan nomor HP terdaftar, lalu buat password baru.</p>
             </div>
 
+            <x-flash-messages :show-errors="false" />
+
             @if(session()->has('pwd_reset_user_id'))
                 <form method="POST" action="{{ route('password.phone.update') }}">
                     @csrf
