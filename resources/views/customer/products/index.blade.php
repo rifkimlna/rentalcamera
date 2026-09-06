@@ -16,92 +16,42 @@
         </div>
     </div>
 
-    {{-- Filter Section --}}
-    <div class="card-apple-static p-3 sm:p-4 lg:p-5 mb-4 sm:mb-6">
-        <form method="GET" action="{{ route('customer.products.index') }}">
-            {{-- Desktop --}}
-            <div class="hidden lg:grid lg:grid-cols-6 gap-4">
-                <div class="col-span-2">
-                    <label class="block text-xs font-medium text-[#86868b] mb-1.5">Cari Equipment</label>
-                    <input type="text" class="input-apple" name="search" value="{{ request('search') }}" placeholder="Cari equipment...">
-                </div>
-                <div>
-                    <label class="block text-xs font-medium text-[#86868b] mb-1.5">Kategori</label>
-                    <select class="select-apple" name="kategori">
-                        <option value="">Semua</option>
-                        @foreach($categories as $category)
-                            <option value="{{ $category->slug }}" {{ request('kategori') == $category->slug ? 'selected' : '' }}>{{ $category->nama_kategori }}</option>
-                        @endforeach
-                    </select>
-                </div>
-                <div>
-                    <label class="block text-xs font-medium text-[#86868b] mb-1.5">Brand</label>
-                    <select class="select-apple" name="brand">
-                        <option value="">Semua</option>
-                        @foreach($brands as $brand)
-                            <option value="{{ $brand->slug }}" {{ request('brand') == $brand->slug ? 'selected' : '' }}>{{ $brand->nama_brand }}</option>
-                        @endforeach
-                    </select>
-                </div>
-                <div>
-                    <label class="block text-xs font-medium text-[#86868b] mb-1.5">Urutkan</label>
-                    <select class="select-apple" name="sort">
-                        <option value="newest" {{ request('sort') == 'newest' ? 'selected' : '' }}>Terbaru</option>
-                        <option value="price_low" {{ request('sort') == 'price_low' ? 'selected' : '' }}>Harga Terendah</option>
-                        <option value="price_high" {{ request('sort') == 'price_high' ? 'selected' : '' }}>Harga Tertinggi</option>
-                        <option value="popular" {{ request('sort') == 'popular' ? 'selected' : '' }}>Terpopuler</option>
-                        <option value="rating" {{ request('sort') == 'rating' ? 'selected' : '' }}>Rating Tertinggi</option>
-                    </select>
-                </div>
-                <div class="flex items-end gap-2">
-                    <button type="submit" class="btn-dark-apple !px-4 !py-2.5 flex-1">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-4.35-4.35m1.35-5.15a6.5 6.5 0 11-13 0 6.5 6.5 0 0113 0z"/></svg>
-                        Cari
-                    </button>
-                    <a href="{{ route('customer.products.index') }}" class="btn-outline-apple !px-3 !py-2.5" title="Reset">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
-                    </a>
-                </div>
+    {{-- Search minimalis --}}
+    <form method="GET" action="{{ route('customer.products.index') }}" class="mb-4 sm:mb-6">
+        <div class="flex items-center gap-2">
+            <div class="relative flex-1 min-w-0">
+                <span class="absolute left-4 top-1/2 -translate-y-1/2 text-[#86868b]">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-4.35-4.35m1.35-5.15a6.5 6.5 0 11-13 0 6.5 6.5 0 0113 0z"/></svg>
+                </span>
+                <input type="text" class="input-apple !rounded-full !pl-11" name="search" value="{{ request('search') }}" placeholder="Cari equipment...">
             </div>
-
-            {{-- Mobile --}}
-            <div class="lg:hidden space-y-3">
-                <div class="flex items-center gap-2">
-                    <div class="relative flex-1">
-                        <span class="absolute left-3 top-1/2 -translate-y-1/2 text-[#86868b]">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-4.35-4.35m1.35-5.15a6.5 6.5 0 11-13 0 6.5 6.5 0 0113 0z"/></svg>
-                        </span>
-                        <input type="text" class="input-apple !pl-9" name="search" value="{{ request('search') }}" placeholder="Cari equipment...">
-                    </div>
-                    <button type="submit" class="btn-dark-apple !px-5 !py-3">Cari</button>
-                    <a href="{{ route('customer.products.index') }}" class="btn-outline-apple !px-3 !py-3" title="Reset">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
-                    </a>
-                </div>
-                <div class="grid grid-cols-3 gap-2">
-                    <select class="select-apple !text-xs !py-2" name="kategori">
-                        <option value="">Kategori</option>
-                        @foreach($categories as $category)
-                            <option value="{{ $category->slug }}" {{ request('kategori') == $category->slug ? 'selected' : '' }}>{{ $category->nama_kategori }}</option>
-                        @endforeach
-                    </select>
-                    <select class="select-apple !text-xs !py-2" name="brand">
-                        <option value="">Brand</option>
-                        @foreach($brands as $brand)
-                            <option value="{{ $brand->slug }}" {{ request('brand') == $brand->slug ? 'selected' : '' }}>{{ $brand->nama_brand }}</option>
-                        @endforeach
-                    </select>
-                    <select class="select-apple !text-xs !py-2" name="sort">
-                        <option value="newest" {{ request('sort', 'newest') == 'newest' ? 'selected' : '' }}>Terbaru</option>
-                        <option value="price_low" {{ request('sort') == 'price_low' ? 'selected' : '' }}>Harga Rendah</option>
-                        <option value="price_high" {{ request('sort') == 'price_high' ? 'selected' : '' }}>Harga Tinggi</option>
-                        <option value="popular" {{ request('sort') == 'popular' ? 'selected' : '' }}>Populer</option>
-                        <option value="rating" {{ request('sort') == 'rating' ? 'selected' : '' }}>Rating</option>
-                    </select>
-                </div>
-            </div>
-        </form>
-    </div>
+            <button type="submit" class="btn-dark-apple shrink-0 !px-5 sm:!px-7">Cari</button>
+            <a href="{{ route('customer.products.index') }}" class="btn-outline-apple shrink-0 !p-3" title="Reset">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
+            </a>
+        </div>
+        <div class="grid grid-cols-3 gap-2 mt-2">
+            <select class="select-apple !rounded-full !py-2.5 !text-xs sm:!text-sm" name="kategori">
+                <option value="">Semua Kategori</option>
+                @foreach($categories as $category)
+                    <option value="{{ $category->slug }}" {{ request('kategori') == $category->slug ? 'selected' : '' }}>{{ $category->nama_kategori }}</option>
+                @endforeach
+            </select>
+            <select class="select-apple !rounded-full !py-2.5 !text-xs sm:!text-sm" name="brand">
+                <option value="">Semua Brand</option>
+                @foreach($brands as $brand)
+                    <option value="{{ $brand->slug }}" {{ request('brand') == $brand->slug ? 'selected' : '' }}>{{ $brand->nama_brand }}</option>
+                @endforeach
+            </select>
+            <select class="select-apple !rounded-full !py-2.5 !text-xs sm:!text-sm" name="sort">
+                <option value="newest" {{ request('sort', 'newest') == 'newest' ? 'selected' : '' }}>Terbaru</option>
+                <option value="price_low" {{ request('sort') == 'price_low' ? 'selected' : '' }}>Harga Terendah</option>
+                <option value="price_high" {{ request('sort') == 'price_high' ? 'selected' : '' }}>Harga Tertinggi</option>
+                <option value="popular" {{ request('sort') == 'popular' ? 'selected' : '' }}>Terpopuler</option>
+                <option value="rating" {{ request('sort') == 'rating' ? 'selected' : '' }}>Rating Tertinggi</option>
+            </select>
+        </div>
+    </form>
 
     {{-- Products Grid --}}
     <div class="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-4 lg:gap-5">
