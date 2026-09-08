@@ -15,6 +15,9 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->validateCsrfTokens(except: [
             'broadcasting/auth',
             'midtrans/*',
+            'customer/checkout/midtrans-callback',
+            'customer/studio/callback',
+            'customer/layanan/callback',
         ]);
 
         $middleware->trustProxies(at: '*');

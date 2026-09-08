@@ -73,101 +73,79 @@
         </div>
     @endif
 
-    {{-- Categories Section --}}
-    <div class="mt-12 card-apple-static p-6 lg:p-8">
-        <h3 class="text-lg font-semibold text-[#1d1d1f] mb-5">Kategori Produk</h3>
-        <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
-            @foreach($categories as $category)
-                <a href="{{ route('customer.products.index', ['kategori' => $category->slug]) }}" class="group flex flex-col items-center p-4 rounded-2xl hover:bg-[#f5f5f7] transition-colors">
-                    <div class="w-12 h-12 rounded-2xl bg-[#f5f5f7] flex items-center justify-center mb-3 group-hover:bg-[#e5e5e7] transition-colors">
-                        @php
-                            $icons = [
-                                'kamera-dslr' => '<svg class="h-6 w-6 text-[#6e6e73]" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"/><path stroke-linecap="round" stroke-linejoin="round" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"/></svg>',
-                                'kamera-mirrorless' => '<svg class="h-6 w-6 text-[#6e6e73]" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>',
-                                'lensa-kamera' => '<svg class="h-6 w-6 text-[#6e6e73]" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M12 8c-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4-1.79-4-4-4zm-7 4a7 7 0 1114 0 7 7 0 01-14 0z"/><circle cx="12" cy="12" r="3"/></svg>',
-                                'lighting-equipment' => '<svg class="h-6 w-6 text-[#6e6e73]" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"/></svg>',
-                                'audio-equipment' => '<svg class="h-6 w-6 text-[#6e6e73]" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m-4 0h8m-8-8a4 4 0 014-4m0 0a4 4 0 014 4"/></svg>',
-                                'tripod-stabilizer' => '<svg class="h-6 w-6 text-[#6e6e73]" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3m0 0v3m0-3h3m-3 0H9m12 0a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>',
-                                'drone' => '<svg class="h-6 w-6 text-[#6e6e73]" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>',
-                                'aksesoris' => '<svg class="h-6 w-6 text-[#6e6e73]" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/></svg>',
-                            ];
-                        @endphp
-                        {!! $icons[$category->slug] ?? $icons['kamera-dslr'] !!}
-                    </div>
-                    <span class="text-sm font-medium text-[#1d1d1f] text-center">{{ $category->nama_kategori }}</span>
-                </a>
-            @endforeach
-        </div>
-    </div>
 </div>
 
-{{-- Add to Cart Modal --}}
-<dialog id="addToCartModal" class="backdrop:bg-black/40">
-    <div class="bg-white rounded-3xl shadow-2xl w-full max-w-lg mx-4 p-6 lg:p-8">
-        <div class="flex items-center justify-between mb-6">
-            <div>
-                <h3 class="text-lg font-bold text-[#1d1d1f]" id="modalTitle">Sewa Equipment</h3>
-                <p class="text-sm text-[#86868b] mt-0.5" id="modalSubtitle">Pilih tanggal dan jumlah</p>
-            </div>
-            <button onclick="addToCartModal.close()" class="w-8 h-8 rounded-full bg-[#f5f5f7] flex items-center justify-center hover:bg-[#e5e5e7] transition-colors">
-                <svg class="w-4 h-4 text-[#6e6e73]" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
-            </button>
+{{-- Add to Cart Modal — Minimalis Apple --}}
+<dialog id="addToCartModal" class="p-0 bg-transparent backdrop:bg-black/30 backdrop:backdrop-blur-[2px] open:animate-[fadeIn_0.2s_ease] max-w-none w-full h-full max-h-none items-center justify-center p-3">
+    <div class="bg-white rounded-xl shadow-[0_8px_24px_rgba(0,0,0,0.12)] w-full mx-auto my-auto overflow-hidden max-h-[75vh] overflow-y-auto" style="max-width:280px; width: calc(100vw - 32px);">
+        {{-- Header kotak kecil tanpa icon/X --}}
+        <div class="sticky top-0 bg-white px-4 lg:px-3 pt-4 lg:pt-3 pb-3 lg:pb-2.5 border-b border-[#f0f0f2]">
+            <h3 class="text-[13px] lg:text-[12px] font-semibold text-[#1d1d1f] tracking-tight leading-none" id="modalTitle">Sewa Equipment</h3>
+            <p class="text-[11px] lg:text-[10px] text-[#86868b] leading-none mt-1" id="modalSubtitle">Atur jadwal sewa</p>
         </div>
 
-        <form id="addToCartForm" method="POST" action="{{ route('customer.checkout.direct-rent') }}">
+        <form id="addToCartForm" method="POST" action="{{ route('customer.checkout.direct-rent') }}" class="px-4 lg:px-3 pb-4 lg:pb-3 pt-3 lg:pt-2.5">
             @csrf
             <input type="hidden" name="product_id" id="modal_product_id">
 
-            <div class="grid grid-cols-2 gap-3 mb-4">
+            <div class="grid grid-cols-2 gap-2 mb-3">
                 <div>
-                    <label class="block text-xs font-medium text-[#86868b] mb-1.5">Tanggal Mulai</label>
-                    <input type="date" class="input-apple datepicker" name="tanggal_sewa" id="start_date" required>
+                    <label class="block text-[10px] font-medium text-[#86868b] tracking-wide uppercase mb-1">Tanggal Mulai</label>
+                    <input type="date" class="input-apple !py-1.5 !text-[12px] !rounded-lg w-full" name="tanggal_sewa" id="start_date" required>
                 </div>
                 <div>
-                    <label class="block text-xs font-medium text-[#86868b] mb-1.5">Jam Mulai</label>
-                    <input type="time" class="input-apple" name="jam_mulai" id="jam_mulai" value="08:00" required>
+                    <label class="block text-[10px] font-medium text-[#86868b] tracking-wide uppercase mb-1">Jam Mulai</label>
+                    <input type="time" class="input-apple !py-1.5 !text-[12px] !rounded-lg w-full" name="jam_mulai" id="jam_mulai" value="08:00" required>
                 </div>
                 <div>
-                    <label class="block text-xs font-medium text-[#86868b] mb-1.5">Tanggal Kembali</label>
-                    <input type="date" class="input-apple datepicker" name="tanggal_kembali" id="end_date" required>
+                    <label class="block text-[10px] font-medium text-[#86868b] tracking-wide uppercase mb-1">Tanggal Kembali</label>
+                    <input type="date" class="input-apple !py-1.5 !text-[12px] !rounded-lg datepicker w-full" name="tanggal_kembali" id="end_date" required>
                 </div>
                 <div>
-                    <label class="block text-xs font-medium text-[#86868b] mb-1.5">Jumlah</label>
-                    <input type="number" class="input-apple" name="jumlah" id="quantity" min="1" value="1" required>
-                    <p class="text-[10px] text-[#86868b] mt-1" id="stock_info"></p>
+                    <label class="block text-[10px] font-medium text-[#86868b] tracking-wide uppercase mb-1">Jumlah</label>
+                    <div class="flex items-center rounded-lg bg-[#f5f5f7] p-0.5">
+                        <button type="button" class="w-6 h-6 rounded-md bg-white shadow-sm flex items-center justify-center text-[#1d1d1f] shrink-0 hover:bg-white active:scale-95 transition text-xs" onclick="let e=document.getElementById('quantity'); if(parseInt(e.value)>1){e.value=parseInt(e.value)-1; e.dispatchEvent(new Event('input')); e.dispatchEvent(new Event('change'));}">−</button>
+                        <input type="number" class="flex-1 bg-transparent text-center text-[12px] font-semibold text-[#1d1d1f] outline-none py-0.5 min-w-0" name="jumlah" id="quantity" min="1" value="1" required>
+                        <button type="button" class="w-6 h-6 rounded-md bg-white shadow-sm flex items-center justify-center text-[#1d1d1f] shrink-0 hover:bg-white active:scale-95 transition text-xs" onclick="let e=document.getElementById('quantity'); e.value=parseInt(e.value)+1; e.dispatchEvent(new Event('input')); e.dispatchEvent(new Event('change'));">+</button>
+                    </div>
+                    <p class="text-[9px] text-[#86868b] mt-1 text-center" id="stock_info">Stok tersedia: -</p>
                 </div>
             </div>
 
-            <div class="flex items-center gap-3 p-3.5 rounded-xl bg-[#f5f5f7] mb-4">
-                <div class="flex-1 text-sm">
-                    <span class="text-[#86868b]">Lama Sewa:</span>
-                    <strong class="text-[#1d1d1f]" id="rental_days">1 hari</strong>
+            {{-- Summary kotak kecil tanpa icon --}}
+            <div class="rounded-lg bg-[#f5f5f7] p-2.5 mb-2.5 flex items-center justify-between gap-2">
+                <div class="flex items-center gap-1.5 text-sm min-w-0">
+                    <span class="text-[#6e6e73] text-[11px]">Durasi</span>
+                    <strong class="text-[#1d1d1f] text-[11px]" id="rental_days">1 hari</strong>
                 </div>
-                <div class="text-right text-sm">
-                    <span class="text-[#86868b]">Rp</span>
-                    <strong class="text-[#1d1d1f]" id="price_per_day">0</strong>
-                    <span class="text-[#86868b]">/hari</span>
+                <div class="text-right shrink-0">
+                    <span class="text-[9px] text-[#86868b] uppercase tracking-wide">per hari</span>
+                    <p class="text-[12px] font-semibold text-[#1d1d1f]" id="price_per_day_wrap"><span class="text-[#86868b] font-normal">Rp</span> <span id="price_per_day">0</span></p>
                 </div>
             </div>
 
-            <div class="flex items-center justify-between p-3.5 rounded-xl border border-[#e5e5e7] mb-5">
-                <span class="text-sm font-medium text-[#1d1d1f]">Subtotal Sewa</span>
-                <strong class="text-base font-bold text-[#1d1d1f]" id="subtotal">Rp 0</strong>
+            <div class="flex items-center justify-between py-2 border-y border-[#f0f0f2] mb-3 gap-2">
+                <span class="text-[11px] font-medium text-[#6e6e73]">Subtotal</span>
+                <strong class="text-[14px] font-semibold text-[#1d1d1f] tracking-tight text-right" id="subtotal">Rp 0</strong>
             </div>
 
-            <div class="flex gap-3">
-                <button type="button" class="btn-outline-apple flex-1 !py-3" onclick="addToCartModal.close()">Batal</button>
-                <button type="submit" class="btn-dark-apple flex-1 !py-3" id="modalSubmitBtn">Lanjutkan ke Checkout</button>
+            <div class="flex gap-2">
+                <button type="button" class="flex-1 py-2 rounded-full border border-[#e5e5e7] text-[12px] font-medium text-[#6e6e73] hover:bg-[#f5f5f7] hover:text-[#1d1d1f] active:scale-[0.98] transition" onclick="addToCartModal.close()">Batal</button>
+                <button type="submit" class="flex-1 py-2 rounded-full bg-[#1d1d1f] text-white text-[12px] font-semibold hover:bg-black active:scale-[0.98] transition flex items-center justify-center" id="modalSubmitBtn">Lanjutkan</button>
             </div>
         </form>
     </div>
 </dialog>
+<style>
+@keyframes fadeIn { from { opacity:0; transform: scale(0.98) } to { opacity:1; transform: scale(1) } }
+dialog::backdrop { background: rgba(0,0,0,0.3); backdrop-filter: blur(2px); }
+dialog[open] { display:flex; }
+</style>
 @endsection
 
 @push('scripts')
 <script>
     document.addEventListener('DOMContentLoaded', function() {
-        // Tamu boleh lihat-lihat, tapi aksi sewa wajib login
         const IS_GUEST = {{ auth()->check() ? 'false' : 'true' }};
         const LOGIN_URL = '{{ route("login") }}';
         function requireLogin() {
@@ -181,12 +159,11 @@
                 const start = new Date(startDate);
                 const end = new Date(endDate);
                 const diffTime = Math.abs(end - start);
-                const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+                const diffDays = Math.max(1, Math.ceil(diffTime / (1000 * 60 * 60 * 24)));
                 document.getElementById('rental_days').textContent = diffDays + ' hari';
                 updatePrice();
             }
         }
-
         function updatePrice() {
             const quantity = parseInt(document.getElementById('quantity').value) || 1;
             const pricePerDay = parseFloat(document.getElementById('price_per_day').dataset.price) || 0;
@@ -195,19 +172,20 @@
             const subtotal = pricePerDay * days * quantity;
             document.getElementById('subtotal').textContent = 'Rp ' + subtotal.toLocaleString('id-ID');
         }
-
         document.getElementById('start_date').addEventListener('change', calculateRentalDays);
         document.getElementById('end_date').addEventListener('change', calculateRentalDays);
         document.getElementById('quantity').addEventListener('change', updatePrice);
+        document.getElementById('quantity').addEventListener('input', updatePrice);
+        // close on backdrop click
+        addToCartModal.addEventListener('click', function(e){ if(e.target===this) this.close(); });
 
-        // Tombol sewa -> langsung isi tanggal lalu checkout (tanpa keranjang)
         document.querySelectorAll('.add-to-cart').forEach(function(btn) {
             btn.addEventListener('click', function() {
                 if (IS_GUEST) { requireLogin(); return; }
                 const productId = this.dataset.productId;
-                document.getElementById('modalTitle').textContent = 'Sewa Equipment';
-                document.getElementById('modalSubmitBtn').textContent = 'Lanjut ke Checkout';
-
+                const btnOld = this.innerHTML;
+                this.disabled = true;
+                this.textContent = '...';
                 fetch(document.getElementById('productsPage').dataset.availabilityUrl, {
                     method: 'POST',
                     headers: {
@@ -228,24 +206,30 @@
                         if (response.start_date) document.getElementById('start_date').value = response.start_date;
                         if (response.end_date) document.getElementById('end_date').value = response.end_date;
                         document.getElementById('quantity').value = 1;
-                        document.getElementById('price_per_day').textContent = response.harga_formatted || 'Rp ' + response.price_per_day.toLocaleString('id-ID');
-                        document.getElementById('price_per_day').dataset.price = response.price_per_day;
+                        // price_per_day now expects numeric, fallback to formatted
+                        const priceEl = document.getElementById('price_per_day');
+                        priceEl.textContent = (response.price_per_day || 0).toLocaleString('id-ID');
+                        priceEl.dataset.price = response.price_per_day;
                         document.getElementById('stock_info').textContent = 'Stok tersedia: ' + (response.available_stock || '?');
-                        updatePrice();
+                        calculateRentalDays();
                         addToCartModal.showModal();
                     } else {
-                        alert(response.message);
+                        alert(response.message || 'Stok tidak tersedia');
                     }
-                });
+                })
+                .catch(()=> alert('Gagal cek ketersediaan'))
+                .finally(()=> { btn.disabled=false; btn.textContent='Sewa'; });
             });
         });
 
-        // Handle form submission -> simpan ke session lalu ke checkout
         document.getElementById('addToCartForm').addEventListener('submit', function(e) {
             e.preventDefault();
             if (IS_GUEST) { requireLogin(); return; }
+            const submitBtn = document.getElementById('modalSubmitBtn');
+            const orig = submitBtn.innerHTML;
+            submitBtn.disabled = true;
+            submitBtn.innerHTML = '<span class="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></span> Memproses...';
             const formData = new FormData(this);
-
             fetch('{{ route("customer.checkout.direct-rent") }}', {
                 method: 'POST',
                 headers: { 'X-CSRF-TOKEN': document.querySelector('input[name="_token"]').value },
@@ -259,8 +243,12 @@
                 if (!data) return;
                 addToCartModal.close();
                 if (data.success) window.location.href = '{{ route("customer.checkout.index") }}';
-                else alert(data.message || 'Terjadi kesalahan');
-            });
+                else {
+                    alert(data.message || 'Terjadi kesalahan');
+                    submitBtn.disabled=false; submitBtn.innerHTML=orig;
+                }
+            })
+            .catch(()=> { alert('Terjadi kesalahan. Coba lagi'); submitBtn.disabled=false; submitBtn.innerHTML=orig; });
         });
     });
 </script>

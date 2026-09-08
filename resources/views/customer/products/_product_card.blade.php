@@ -54,7 +54,7 @@
         <div class="flex gap-1.5 sm:gap-2">
             <a href="{{ route('customer.products.show', $product->slug) }}" class="flex-1 text-center text-[11px] sm:text-xs lg:text-sm font-medium py-1.5 sm:py-2 rounded-lg lg:rounded-xl border border-[#e5e5e7] text-[#1d1d1f] hover:bg-[#f5f5f7] transition-colors">Detail</a>
             @if($product->status == 'available' && $product->stok_tersedia > 0)
-                <a href="{{ route('customer.products.show', $product->slug) }}" class="flex-1 text-center text-[11px] sm:text-xs lg:text-sm font-medium py-1.5 sm:py-2 rounded-lg lg:rounded-xl bg-[#1d1d1f] text-white hover:bg-[#333] transition-colors">Sewa</a>
+                <button type="button" data-product-id="{{ $product->id }}" class="add-to-cart flex-1 text-center text-[11px] sm:text-xs lg:text-sm font-medium py-1.5 sm:py-2 rounded-lg lg:rounded-xl bg-[#1d1d1f] text-white hover:bg-[#333] active:scale-[0.98] transition-all">Sewa</button>
             @else
                 <button class="flex-1 text-[11px] sm:text-xs lg:text-sm font-medium py-1.5 sm:py-2 rounded-lg lg:rounded-xl bg-[#f5f5f7] text-[#86868b] cursor-not-allowed" disabled>Tidak Tersedia</button>
             @endif

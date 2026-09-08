@@ -1,4 +1,4 @@
-﻿@extends('layouts.app')
+@extends('layouts.app')
 
 @section('title', 'Stekpro — Sewa Equipment, Studio & Layanan Kreatif Profesional')
 @section('meta-description', 'Sewa kamera, lensa, lighting, studio foto, dan jasa videografer profesional. Gear terawat, harga transparan, booking cepat.')
@@ -86,7 +86,7 @@
                 </h1>
 
                 <p class="text-lg md:text-xl leading-relaxed tracking-tight text-neutral-500 max-w-2xl text-center">
-                    Kamera, lensa, lighting, studio foto, sampai videografer — semua terawat, siap pakai, dan bisa dibooking dalam hitungan menit.
+                    Kamera, lensa, lighting, studio foto, sampai videografer semua terawat, siap pakai, dan bisa dibooking dalam hitungan menit.
                 </p>
             </div>
             <div class="flex flex-col sm:flex-row gap-3">
@@ -114,7 +114,7 @@
 
 {{-- ============ 2. KATALOG UTAMA : interactive tabs ============ --}}
 <section id="katalog" class="scroll-mt-24 bg-[#FAFAFA] py-14 sm:py-20">
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+    <div class="max-w-7xl mx-auto px-2 sm:px-4 lg:px-6">
         <div class="text-center max-w-2xl mx-auto mb-8">
             <span class="badge-brand mb-3">Katalog Utama</span>
             <h2 class="text-2xl sm:text-3xl lg:text-4xl font-extrabold tracking-tight text-slate-900 mb-3">Satu platform untuk semua kebutuhan produksi</h2>
@@ -141,42 +141,42 @@
 
         {{-- PANEL : EQUIPMENT --}}
         <div x-show="activeTab === 'equipment'" x-transition.opacity.duration.250ms class="tab-panel-enter">
-            <div class="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-2 sm:gap-5">
+            <div class="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-2 sm:gap-3 lg:gap-5">
                 @forelse(($featuredProducts ?? collect())->take(8) as $p)
-                    <article class="catalog-card group">
-                        <div class="overflow-hidden bg-neutral-100">
+                    <article class="catalog-card group min-w-0">
+                        <div class="aspect-[4/3] overflow-hidden bg-neutral-100">
                             @if(!empty($p->gambar_utama))
-                                <img src="{{ asset('storage/' . $p->gambar_utama) }}" alt="{{ $p->nama_produk }}" class="w-full h-auto object-contain block" loading="lazy">
+                                <img src="{{ asset('storage/' . $p->gambar_utama) }}" alt="{{ $p->nama_produk }}" class="w-full h-full object-cover block" loading="lazy">
                             @else
                                 <div class="w-full h-full flex items-center justify-center">
                                     <svg class="w-10 h-10 sm:w-12 sm:h-12 text-neutral-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.2"><path stroke-linecap="round" stroke-linejoin="round" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"/><path stroke-linecap="round" stroke-linejoin="round" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
                                 </div>
                             @endif
                         </div>
-                        <div class="p-3 sm:p-4">
+                        <div class="p-2 sm:p-3">
                             <p class="text-[11px] font-medium uppercase tracking-wider text-neutral-400 mb-1">{{ $p->kategori->nama_kategori ?? 'Equipment' }}</p>
                             <h3 class="font-semibold text-black text-[13px] sm:text-[15px] leading-snug line-clamp-1">{{ $p->nama_produk }}</h3>
                             <p class="text-[11px] sm:text-xs text-neutral-400 mt-1">{{ number_format((float)($p->rating ?? 0), 1) }} · {{ $p->jumlah_ulasan ?? 0 }} ulasan · Stok {{ $p->stok_tersedia ?? '-' }}</p>
-                            <div class="flex items-center justify-between mt-3 pt-3 border-t border-neutral-100">
+                            <div class="flex flex-col gap-1.5 sm:flex-row sm:items-center sm:justify-between mt-2 sm:mt-3 pt-2 sm:pt-3 border-t border-neutral-100">
                                 <p class="text-sm sm:text-[15px] font-semibold text-black">Rp {{ number_format($p->harga_per_hari, 0, ',', '.') }}<span class="text-xs font-normal text-neutral-400">/hari</span></p>
                                 @php $pUrl = !empty($p->slug) ? route('customer.products.show', $p->slug) : $eqIndex; @endphp
-                                <a href="{{ $pUrl }}" class="inline-flex items-center px-3 py-1.5 sm:px-4 sm:py-2 rounded-full bg-black hover:bg-neutral-800 text-white text-xs sm:text-[13px] font-medium transition-colors shrink-0">Booking</a>
+                                <a href="{{ $pUrl }}" class="inline-flex items-center px-3 py-1.5 sm:px-4 sm:py-2 rounded-full bg-black hover:bg-neutral-800 text-white text-xs sm:text-[13px] font-medium transition-colors w-full sm:w-auto justify-center shrink-0">Sewa</a>
                             </div>
                         </div>
                     </article>
                 @empty
                     @foreach($dummyEquipment as $d)
-                        <article class="catalog-card group">
+                        <article class="catalog-card group min-w-0">
                             <div class="aspect-[4/3] overflow-hidden bg-neutral-100 flex items-center justify-center">
                                 <svg class="w-10 h-10 sm:w-12 sm:h-12 text-neutral-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.2"><path stroke-linecap="round" stroke-linejoin="round" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"/><path stroke-linecap="round" stroke-linejoin="round" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
                             </div>
-                            <div class="p-3 sm:p-4">
+                            <div class="p-2 sm:p-3">
                                 <p class="text-[11px] font-medium uppercase tracking-wider text-neutral-400 mb-1">{{ $d['kat'] }}</p>
                                 <h3 class="font-semibold text-black text-[13px] sm:text-[15px] leading-snug line-clamp-1">{{ $d['nama'] }}</h3>
                                 <p class="text-[11px] sm:text-xs text-neutral-400 mt-1">{{ $d['rating'] }} · {{ $d['ulasan'] }} ulasan · Tersedia</p>
-                                <div class="flex items-center justify-between mt-3 pt-3 border-t border-neutral-100">
+                                <div class="flex flex-col gap-1.5 sm:flex-row sm:items-center sm:justify-between mt-2 sm:mt-3 pt-2 sm:pt-3 border-t border-neutral-100">
                                     <p class="text-sm sm:text-[15px] font-semibold text-black">Rp {{ number_format($d['harga'], 0, ',', '.') }}<span class="text-xs font-normal text-neutral-400">/{{ $d['satuan'] }}</span></p>
-                                    <a href="{{ $eqIndex }}" class="inline-flex items-center px-3 py-1.5 sm:px-4 sm:py-2 rounded-full bg-black hover:bg-neutral-800 text-white text-xs sm:text-[13px] font-medium transition-colors shrink-0">Booking</a>
+                                    <a href="{{ $eqIndex }}" class="inline-flex items-center px-3 py-1.5 sm:px-4 sm:py-2 rounded-full bg-black hover:bg-neutral-800 text-white text-xs sm:text-[13px] font-medium transition-colors w-full sm:w-auto justify-center shrink-0">Sewa</a>
                                 </div>
                             </div>
                         </article>
@@ -192,44 +192,44 @@
 
         {{-- PANEL : STUDIO --}}
         <div x-show="activeTab === 'studio'" x-cloak x-transition.opacity.duration.250ms class="tab-panel-enter">
-            <div class="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-2 sm:gap-5">
+            <div class="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-2 sm:gap-3 lg:gap-5">
                 @forelse(($studios ?? collect().take(0)) as $s)
-                    <article class="catalog-card group">
-                        <div class="overflow-hidden bg-neutral-100">
+                    <article class="catalog-card group min-w-0">
+                        <div class="aspect-[4/3] overflow-hidden bg-neutral-100">
                             @if(!empty($s->gambar_utama))
-                                <img src="{{ asset('storage/' . $s->gambar_utama) }}" alt="{{ $s->nama_studio }}" class="w-full h-auto object-contain block" loading="lazy">
+                                <img src="{{ asset('storage/' . $s->gambar_utama) }}" alt="{{ $s->nama_studio }}" class="w-full h-full object-cover block" loading="lazy">
                             @else
                                 <div class="w-full h-full flex items-center justify-center">
                                     <svg class="w-10 h-10 sm:w-12 sm:h-12 text-neutral-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.2"><path stroke-linecap="round" stroke-linejoin="round" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5h1v5m-1 0h2"/></svg>
                                 </div>
                             @endif
                         </div>
-                        <div class="p-3 sm:p-4">
+                        <div class="p-2 sm:p-3">
                             <p class="text-[11px] font-medium uppercase tracking-wider text-neutral-400 mb-1">Studio</p>
                             <h3 class="font-semibold text-black text-[13px] sm:text-[15px] leading-snug line-clamp-1">{{ $s->nama_studio }}</h3>
                             @php $fasList = array_slice(array_filter((array)($s->fasilitas ?? []), 'is_string'), 0, 2); @endphp
                             <p class="text-[11px] sm:text-xs text-neutral-400 mt-1 line-clamp-1">{{ number_format((float)($s->rating ?? 0), 1) }} · {{ $s->jumlah_ulasan ?? 0 }} ulasan{{ count($fasList) ? ' · ' . implode(' · ', array_map(fn($f) => Str::limit($f, 20), $fasList)) : '' }}</p>
-                            <div class="flex items-center justify-between mt-3 pt-3 border-t border-neutral-100">
+                            <div class="flex flex-col gap-1.5 sm:flex-row sm:items-center sm:justify-between mt-2 sm:mt-3 pt-2 sm:pt-3 border-t border-neutral-100">
                                 <p class="text-sm sm:text-[15px] font-semibold text-black">Rp {{ number_format($s->harga_per_jam, 0, ',', '.') }}<span class="text-xs font-normal text-neutral-400">/jam</span></p>
                                 {{-- Tamu boleh lihat detail studio; booking dikunci wajib login di halaman detail --}}
                                 @php $sUrl = !empty($s->slug) ? route('customer.studio.show', $s->slug) : $stIndex; @endphp
-                                <a href="{{ $sUrl }}" class="inline-flex items-center px-3 py-1.5 sm:px-4 sm:py-2 rounded-full bg-black hover:bg-neutral-800 text-white text-xs sm:text-[13px] font-medium transition-colors shrink-0">Booking</a>
+                                <a href="{{ $sUrl }}" class="inline-flex items-center px-3 py-1.5 sm:px-4 sm:py-2 rounded-full bg-black hover:bg-neutral-800 text-white text-xs sm:text-[13px] font-medium transition-colors w-full sm:w-auto justify-center shrink-0">Sewa</a>
                             </div>
                         </div>
                     </article>
                 @empty
                     @foreach($dummyStudio as $d)
-                        <article class="catalog-card group">
+                        <article class="catalog-card group min-w-0">
                             <div class="aspect-[4/3] overflow-hidden bg-neutral-100 flex items-center justify-center">
                                 <svg class="w-10 h-10 sm:w-12 sm:h-12 text-neutral-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.2"><path stroke-linecap="round" stroke-linejoin="round" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5h1v5m-1 0h2"/></svg>
                             </div>
-                            <div class="p-3 sm:p-4">
+                            <div class="p-2 sm:p-3">
                                 <p class="text-[11px] font-medium uppercase tracking-wider text-neutral-400 mb-1">Studio</p>
                                 <h3 class="font-semibold text-black text-[13px] sm:text-[15px] leading-snug line-clamp-1">{{ $d['nama'] }}</h3>
                                 <p class="text-[11px] sm:text-xs text-neutral-400 mt-1 line-clamp-1">{{ $d['rating'] }} · {{ $d['ulasan'] }} ulasan · {{ implode(' · ', array_slice($d['fasilitas'], 0, 2)) }}</p>
-                                <div class="flex items-center justify-between mt-3 pt-3 border-t border-neutral-100">
+                                <div class="flex flex-col gap-1.5 sm:flex-row sm:items-center sm:justify-between mt-2 sm:mt-3 pt-2 sm:pt-3 border-t border-neutral-100">
                                     <p class="text-sm sm:text-[15px] font-semibold text-black">Rp {{ number_format($d['harga'], 0, ',', '.') }}<span class="text-xs font-normal text-neutral-400">/{{ $d['satuan'] }}</span></p>
-                                    <a href="{{ $stIndex }}" class="inline-flex items-center px-3 py-1.5 sm:px-4 sm:py-2 rounded-full bg-black hover:bg-neutral-800 text-white text-xs sm:text-[13px] font-medium transition-colors shrink-0">Booking</a>
+                                    <a href="{{ $stIndex }}" class="inline-flex items-center px-3 py-1.5 sm:px-4 sm:py-2 rounded-full bg-black hover:bg-neutral-800 text-white text-xs sm:text-[13px] font-medium transition-colors w-full sm:w-auto justify-center shrink-0">Sewa</a>
                                 </div>
                             </div>
                         </article>
@@ -245,15 +245,15 @@
 
         {{-- PANEL : LAYANAN --}}
         <div x-show="activeTab === 'layanan'" x-cloak x-transition.opacity.duration.250ms class="tab-panel-enter">
-            <div class="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-2 sm:gap-5">
+            <div class="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-2 sm:gap-3 lg:gap-5">
                 @forelse(($layanans ?? collect()->take(0)) as $l)
-                    <article class="catalog-card group flex flex-col overflow-hidden">
+                    <article class="catalog-card group flex flex-col overflow-hidden min-w-0">
                         @if(!empty($l->gambar_utama))
-                            <div class="overflow-hidden bg-neutral-100">
-                                <img src="{{ asset('storage/' . $l->gambar_utama) }}" alt="{{ $l->nama_layanan }}" class="w-full h-auto object-contain block" loading="lazy">
+                            <div class="aspect-[4/3] overflow-hidden bg-neutral-100">
+                                <img src="{{ asset('storage/' . $l->gambar_utama) }}" alt="{{ $l->nama_layanan }}" class="w-full h-full object-cover block" loading="lazy">
                             </div>
                         @endif
-                        <div class="p-3 sm:p-4 flex flex-col flex-1">
+                        <div class="p-2 sm:p-3 flex flex-col flex-1">
                         <p class="text-[11px] font-medium uppercase tracking-wider text-neutral-400 mb-1">{{ $l->kategori ?? 'Layanan' }}</p>
                         <h3 class="font-semibold text-black text-[13px] sm:text-[15px] leading-snug line-clamp-1">{{ $l->nama_layanan }}</h3>
                         <p class="text-[11px] sm:text-xs text-neutral-400 mt-1">{{ number_format((float)($l->rating ?? 0), 1) }} · {{ $l->jumlah_ulasan ?? 0 }} ulasan</p>
@@ -262,20 +262,20 @@
                             <p class="text-sm sm:text-[15px] font-semibold text-black">Rp {{ number_format($l->harga_mulai, 0, ',', '.') }}</p>
                             {{-- Tamu boleh lihat detail layanan; booking dikunci wajib login di halaman detail --}}
                             @php $lUrl = !empty($l->slug) ? route('customer.layanan.show', $l->slug) : $lyIndex; @endphp
-                            <a href="{{ $lUrl }}" class="inline-flex items-center px-3 py-1.5 sm:px-4 sm:py-2 rounded-full bg-black hover:bg-neutral-800 text-white text-xs sm:text-[13px] font-medium transition-colors shrink-0">Booking</a>
+                            <a href="{{ $lUrl }}" class="inline-flex items-center px-3 py-1.5 sm:px-4 sm:py-2 rounded-full bg-black hover:bg-neutral-800 text-white text-xs sm:text-[13px] font-medium transition-colors w-full sm:w-auto justify-center shrink-0">Sewa</a>
                         </div>
                         </div>
                     </article>
                 @empty
                     @foreach($dummyLayanan as $d)
-                        <article class="catalog-card group p-3 sm:p-4 flex flex-col">
+                        <article class="catalog-card group p-2 sm:p-3 flex flex-col min-w-0">
                             <p class="text-[11px] font-medium uppercase tracking-wider text-neutral-400 mb-1">{{ $d['kat'] }}</p>
                             <h3 class="font-semibold text-black text-[13px] sm:text-[15px] leading-snug line-clamp-1">{{ $d['nama'] }}</h3>
                             <p class="text-[11px] sm:text-xs text-neutral-400 mt-1">{{ $d['rating'] }} · {{ $d['ulasan'] }} ulasan</p>
                             <p class="text-[13px] text-neutral-500 mt-2">Tim profesional + peralatan standar broadcast.</p>
                             <div class="mt-auto flex items-center justify-between gap-2 pt-3 mt-3 border-t border-neutral-100">
                                 <p class="text-sm sm:text-[15px] font-semibold text-black">Rp {{ number_format($d['harga'], 0, ',', '.') }}<span class="text-xs font-normal text-neutral-400">/{{ $d['satuan'] }}</span></p>
-                                <a href="{{ $lyIndex }}" class="inline-flex items-center px-3 py-1.5 sm:px-4 sm:py-2 rounded-full bg-black hover:bg-neutral-800 text-white text-xs sm:text-[13px] font-medium transition-colors shrink-0">Booking</a>
+                                <a href="{{ $lyIndex }}" class="inline-flex items-center px-3 py-1.5 sm:px-4 sm:py-2 rounded-full bg-black hover:bg-neutral-800 text-white text-xs sm:text-[13px] font-medium transition-colors w-full sm:w-auto justify-center shrink-0">Sewa</a>
                             </div>
                         </article>
                     @endforeach
@@ -292,7 +292,7 @@
 
 {{-- ============ 4. CARA SEWA ============ --}}
 <section id="cara-sewa" class="scroll-mt-24 bg-[#FAFAFA] py-16 sm:py-24">
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+    <div class="max-w-7xl mx-auto px-2 sm:px-4 lg:px-6">
         <div class="text-center max-w-2xl mx-auto mb-14">
             <span class="badge-brand mb-3">Cara Sewa</span>
             <h2 class="text-3xl sm:text-4xl lg:text-5xl font-extrabold tracking-tight text-slate-900 mb-3">Booking semudah pesan ojek online</h2>
@@ -346,7 +346,7 @@
 
 {{-- ============ 5. TESTIMONI ============ --}}
 <section class="bg-white py-16 sm:py-24 overflow-hidden">
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+    <div class="max-w-7xl mx-auto px-2 sm:px-4 lg:px-6">
         <div class="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4 mb-8">
             <div class="max-w-xl">
                 <span class="badge-brand mb-3">Testimoni</span>
@@ -417,7 +417,7 @@
             @endforeach
         </div>
         <p class="text-center text-sm text-slate-500 mt-6">Butuh jawaban cepat?
-            <a href="https://wa.me/6281234567890" target="_blank" rel="noopener" class="font-bold text-[#111111] hover:underline">Chat WhatsApp CS →</a>
+            <a href="https://wa.me/6281234567890" target="_blank" rel="noopener" class="font-bold text-[#111111] hover:underline">Chat WhatsApp CS ?</a>
         </p>
     </div>
 </section>

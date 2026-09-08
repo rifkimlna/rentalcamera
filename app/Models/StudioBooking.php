@@ -33,6 +33,7 @@ class StudioBooking extends Model
         'midtrans_token',
         'midtrans_redirect_url',
         'paid_at',
+        'payment_expired_at',
     ];
 
     protected $casts = [
@@ -45,7 +46,13 @@ class StudioBooking extends Model
         'grand_total' => 'decimal:2',
         'durasi_jam' => 'integer',
         'paid_at' => 'datetime',
+        'payment_expired_at' => 'datetime',
     ];
+
+    public function isExpired(): bool
+    {
+        return $this->payment_expired_at && now()->gt($this->payment_expired_at);
+    }
 
     public function user()
     {

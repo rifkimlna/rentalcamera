@@ -40,6 +40,20 @@ class MidtransService
      */
     public function generateSnapToken(Transaksis $transaksi) // DIUBAH: parameter type
     {
+        // Guard: transaksi yang sudah dibatalkan/ditolak tidak bisa generate token lagi
+        // User harus buat transaksi baru. Mencegah retry order_id yang sudah deny di Midtrans.
+        // Diletakkan di luar try agar exception bisa propagate ke controller untuk redirect ke failed
+        $failedStatuses = ['deny', 'cancel', 'expire', 'failure'];
+        if ($transaksi->status_transaksi === 'dibatalkan' || in_array($transaksi->status_pembayaran, $failedStatuses)) {
+            Log::warning('Midtrans Snap ditolak: transaksi sudah dibatalkan/ditolak', [
+                'transaksi_id' => $transaksi->id,
+                'kode_transaksi' => $transaksi->kode_transaksi,
+                'status_pembayaran' => $transaksi->status_pembayaran,
+                'status_transaksi' => $transaksi->status_transaksi,
+            ]);
+            throw new \Exception('Transaksi sudah dibatalkan/ditolak. Silakan buat pesanan baru.');
+        }
+
         try {
             // Reuse order ID jika sudah pernah dibuat (agar notification tidak kehilangan koneksi)
             $orderId = $transaksi->midtrans_order_id
@@ -148,12 +162,26 @@ class MidtransService
                 $params['enabled_payments'] = $enabledPayments;
             }
 
-            // Add specific payment method configurations
-            if ($paymentMethod && $paymentMethod->bank_code) {
-                $params['bank_transfer'] = [
-                    'bank' => $paymentMethod->bank_code,
-                    'va_number' => $this->generateVANumber($paymentMethod->bank_code),
-                ];
+            // FIX: Hapus va_number custom untuk Snap — Snap generate VA otomatis.
+            // Mengirim va_number arbitrary (substr merchantId+time) bikin Midtrans deny
+            // Blok bank_transfer custom dihapus; cukup enabled_payments yang filter bank.
+            // Jika butuh VA custom, pakai Core API Charge, bukan Snap.
+
+            // Validasi item sum vs gross_amount (cegah deny fraud)
+            $itemSum = array_sum(array_map(fn($i) => $i['price'] * $i['quantity'], $itemDetails));
+            $gross = (int) $transaksi->grand_total;
+            if ($itemSum !== $gross) {
+                Log::warning('Midtrans item sum mismatch - akan tetap dikirim, tapi berisiko deny', [
+                    'transaksi_id' => $transaksi->id,
+                    'kode_transaksi' => $transaksi->kode_transaksi,
+                    'expected_gross' => $gross,
+                    'item_sum' => $itemSum,
+                    'diff' => $gross - $itemSum,
+                    'item_details' => $itemDetails,
+                ]);
+                // Fallback: jika selisih karena rounding, sync gross ke itemSum untuk hindari deny
+                // Jangan ubah grand_total DB, hanya payload Midtrans (Midtrans validasi payload internal)
+                // Kita tetap pakai gross asli, tapi log warning untuk debugging
             }
 
             // Generate Snap token
@@ -302,7 +330,8 @@ class MidtransService
     }
 
     /**
-     * Handle Midtrans notification (single source of truth for Transaksis).
+     * Handle Midtrans notification (single source of truth untuk Transaksis, Studio & Layanan).
+     * Samakan seperti equipment biar studio/layanan ikut ke-update walau webhook cuma ke /midtrans/notification.
      */
     public function handleNotification(Request $request)
     {
@@ -314,45 +343,202 @@ class MidtransService
             'fraud_status' => $request->fraud_status ?? null,
         ]);
 
+        // 1) Coba Transaksis (equipment)
         $transaksi = Transaksis::where('midtrans_order_id', $orderId)->first();
-
-        if (!$transaksi) {
-            Log::error('Transaction not found for Midtrans notification', [
-                'order_id' => $orderId,
-            ]);
-            return false;
-        }
-
-        // Verifikasi jumlah: notifikasi dengan gross_amount berbeda dari database ditolak
-        if ($request->filled('gross_amount')) {
-            $expectedAmount = (float) $transaksi->grand_total;
-            $receivedAmount = (float) $request->gross_amount;
-
-            if (abs($expectedAmount - $receivedAmount) > 0.01) {
-                Log::error('Midtrans Notification: gross_amount mismatch', [
+        if ($transaksi) {
+            if ($request->filled('gross_amount')) {
+                $expectedAmount = (float) $transaksi->grand_total;
+                $receivedAmount = (float) $request->gross_amount;
+                if (abs($expectedAmount - $receivedAmount) > 0.01) {
+                    Log::error('Midtrans Notification: gross_amount mismatch', [
+                        'order_id' => $orderId,
+                        'expected' => $expectedAmount,
+                        'received' => $receivedAmount,
+                    ]);
+                    return false;
+                }
+            }
+            try {
+                return DB::transaction(function () use ($transaksi, $request) {
+                    $this->updateTransactionStatus($transaksi, $request);
+                    $this->recordPaymentLog($request, $transaksi->id);
+                    return true;
+                });
+            } catch (\Exception $e) {
+                Log::error('Midtrans Notification Error: ' . $e->getMessage(), [
+                    'request_data' => $request->all(),
                     'order_id' => $orderId,
-                    'expected' => $expectedAmount,
-                    'received' => $receivedAmount,
                 ]);
                 return false;
             }
         }
 
-        try {
-            return DB::transaction(function () use ($transaksi, $request) {
-                $this->updateTransactionStatus($transaksi, $request);
-                $this->recordPaymentLog($request, $transaksi->id);
+        // 2) Coba StudioBooking (prefix STD-)
+        $studioBooking = \App\Models\StudioBooking::where('midtrans_order_id', $orderId)->first();
+        if ($studioBooking) {
+            if ($request->filled('gross_amount') && abs((float) $studioBooking->grand_total - (float) $request->gross_amount) > 0.01) {
+                Log::error('Midtrans Studio: gross_amount mismatch', [
+                    'order_id' => $orderId,
+                    'expected' => $studioBooking->grand_total,
+                    'received' => $request->gross_amount,
+                ]);
+                return false;
+            }
+            try {
+                return DB::transaction(function () use ($studioBooking, $request) {
+                    $this->updateStudioBookingStatus($studioBooking, $request);
+                    $this->recordPaymentLog($request, null);
+                    return true;
+                });
+            } catch (\Exception $e) {
+                Log::error('Midtrans Studio Notification Error: ' . $e->getMessage(), ['order_id' => $orderId]);
+                return false;
+            }
+        }
 
-                return true;
-            });
-        } catch (\Exception $e) {
-            Log::error('Midtrans Notification Error: ' . $e->getMessage(), [
-                'request_data' => $request->all(),
-                'order_id' => $orderId,
-            ]);
+        // 3) Coba LayananBooking (prefix LYN-)
+        $layananBooking = \App\Models\LayananBooking::where('midtrans_order_id', $orderId)->first();
+        if ($layananBooking) {
+            if ($request->filled('gross_amount') && abs((float) $layananBooking->grand_total - (float) $request->gross_amount) > 0.01) {
+                Log::error('Midtrans Layanan: gross_amount mismatch', [
+                    'order_id' => $orderId,
+                    'expected' => $layananBooking->grand_total,
+                    'received' => $request->gross_amount,
+                ]);
+                return false;
+            }
+            try {
+                return DB::transaction(function () use ($layananBooking, $request) {
+                    $this->updateLayananBookingStatus($layananBooking, $request);
+                    $this->recordPaymentLog($request, null);
+                    return true;
+                });
+            } catch (\Exception $e) {
+                Log::error('Midtrans Layanan Notification Error: ' . $e->getMessage(), ['order_id' => $orderId]);
+                return false;
+            }
+        }
 
+        Log::error('Transaction not found for Midtrans notification', [
+            'order_id' => $orderId,
+        ]);
+        return false;
+    }
+
+    protected function updateStudioBookingStatus(\App\Models\StudioBooking $booking, Request $request)
+    {
+        $transactionStatus = $request->transaction_status ?? null;
+        $fraudStatus = $request->fraud_status ?? null;
+        switch ($transactionStatus) {
+            case 'capture':
+                if ($fraudStatus === 'challenge') {
+                    if (!in_array($booking->payment_status, ['paid', 'refunded', 'expired', 'failed']) && $booking->status !== 'cancelled') {
+                        $booking->update(['payment_status' => 'pending']);
+                    }
+                } elseif ($fraudStatus === 'deny') {
+                    if ($booking->payment_status !== 'paid') {
+                        $booking->update(['payment_status' => 'failed', 'status' => 'cancelled']);
+                        \App\Models\Voucher::releaseByCode($booking->kode_voucher);
+                    }
+                } elseif ($fraudStatus === 'accept') {
+                    $this->markStudioBookingPaid($booking);
+                }
+                break;
+            case 'settlement':
+                $this->markStudioBookingPaid($booking);
+                break;
+            case 'pending':
+                if (!in_array($booking->payment_status, ['paid', 'refunded', 'expired', 'failed']) && $booking->status !== 'cancelled') {
+                    $booking->update(['payment_status' => 'pending']);
+                }
+                break;
+            case 'deny':
+            case 'cancel':
+            case 'failure':
+                if ($booking->payment_status !== 'paid') {
+                    $booking->update(['payment_status' => 'failed', 'status' => 'cancelled']);
+                    \App\Models\Voucher::releaseByCode($booking->kode_voucher);
+                }
+                break;
+            case 'expire':
+                if ($booking->payment_status !== 'paid') {
+                    $booking->update(['payment_status' => 'expired', 'status' => 'cancelled']);
+                    \App\Models\Voucher::releaseByCode($booking->kode_voucher);
+                }
+                break;
+            case 'refund':
+                $booking->update(['payment_status' => 'refunded']);
+                break;
+        }
+    }
+
+    protected function markStudioBookingPaid(\App\Models\StudioBooking $booking)
+    {
+        if ($booking->status === 'cancelled' || $booking->payment_status === 'paid') {
+            Log::warning('Midtrans Studio settlement diabaikan (sudah cancelled/paid)', ['booking_id' => $booking->id]);
             return false;
         }
+        $booking->update(['payment_status' => 'paid', 'status' => 'confirmed', 'paid_at' => now()]);
+        \App\Models\Notification::sendToAdmins('payment', 'Pembayaran Studio Lunas', 'Booking studio ' . ($booking->studio->nama_studio ?? '#'.$booking->id) . ' telah dibayar.', ['booking_id' => $booking->id, 'type' => 'studio']);
+        return true;
+    }
+
+    protected function updateLayananBookingStatus(\App\Models\LayananBooking $booking, Request $request)
+    {
+        $transactionStatus = $request->transaction_status ?? null;
+        $fraudStatus = $request->fraud_status ?? null;
+        switch ($transactionStatus) {
+            case 'capture':
+                if ($fraudStatus === 'challenge') {
+                    if (!in_array($booking->payment_status, ['paid', 'refunded', 'expired', 'failed']) && $booking->status !== 'cancelled') {
+                        $booking->update(['payment_status' => 'pending']);
+                    }
+                } elseif ($fraudStatus === 'deny') {
+                    if ($booking->payment_status !== 'paid') {
+                        $booking->update(['payment_status' => 'failed', 'status' => 'cancelled']);
+                        \App\Models\Voucher::releaseByCode($booking->kode_voucher);
+                    }
+                } elseif ($fraudStatus === 'accept') {
+                    $this->markLayananBookingPaid($booking);
+                }
+                break;
+            case 'settlement':
+                $this->markLayananBookingPaid($booking);
+                break;
+            case 'pending':
+                if (!in_array($booking->payment_status, ['paid', 'refunded', 'expired', 'failed']) && $booking->status !== 'cancelled') {
+                    $booking->update(['payment_status' => 'pending']);
+                }
+                break;
+            case 'deny':
+            case 'cancel':
+            case 'failure':
+                if ($booking->payment_status !== 'paid') {
+                    $booking->update(['payment_status' => 'failed', 'status' => 'cancelled']);
+                    \App\Models\Voucher::releaseByCode($booking->kode_voucher);
+                }
+                break;
+            case 'expire':
+                if ($booking->payment_status !== 'paid') {
+                    $booking->update(['payment_status' => 'expired', 'status' => 'cancelled']);
+                    \App\Models\Voucher::releaseByCode($booking->kode_voucher);
+                }
+                break;
+            case 'refund':
+                $booking->update(['payment_status' => 'refunded']);
+                break;
+        }
+    }
+
+    protected function markLayananBookingPaid(\App\Models\LayananBooking $booking)
+    {
+        if ($booking->status === 'cancelled' || $booking->payment_status === 'paid') {
+            Log::warning('Midtrans Layanan settlement diabaikan (sudah cancelled/paid)', ['booking_id' => $booking->id]);
+            return false;
+        }
+        $booking->update(['payment_status' => 'paid', 'status' => 'confirmed', 'paid_at' => now()]);
+        \App\Models\Notification::sendToAdmins('payment', 'Pembayaran Layanan Lunas', 'Booking layanan ' . ($booking->layanan->nama_layanan ?? '#'.$booking->id) . ' telah dibayar.', ['booking_id' => $booking->id, 'type' => 'layanan']);
+        return true;
     }
 
     /**
@@ -380,6 +566,35 @@ class MidtransService
                     }
                 } elseif ($fraudStatus == 'accept') {
                     $this->markAsSettled($transaksi);
+                } elseif ($fraudStatus == 'deny') {
+                    // FIX: fraud deny sebelumnya tidak di-handle → transaksi stuck pending selamanya
+                    if (!$isSettled && !$isCancelled) {
+                        Log::warning('Midtrans fraud deny received', [
+                            'kode_transaksi' => $transaksi->kode_transaksi,
+                            'order_id' => $transaksi->midtrans_order_id,
+                        ]);
+                        $transaksi->update([
+                            'status_pembayaran' => 'deny',
+                            'status_transaksi' => 'dibatalkan',
+                            'cancelled_at' => now(),
+                        ]);
+                        foreach ($transaksi->detailTransaksis as $detail) {
+                            if ($detail->produk) {
+                                $detail->produk->updateStock('return', $detail->jumlah);
+                            }
+                        }
+                        \App\Models\Voucher::releaseByCode($transaksi->kode_voucher);
+                        \App\Models\VoucherUsage::where('transaksi_id', $transaksi->id)->delete();
+                    }
+                } else {
+                    // fraud_status null atau tidak dikenal → treat as pending, log warning
+                    if (!$isSettled && !$isCancelled) {
+                        Log::warning('Midtrans capture tanpa fraud_status jelas', [
+                            'order_id' => $transaksi->midtrans_order_id,
+                            'fraud_status' => $fraudStatus,
+                            'transaction_status' => $transactionStatus,
+                        ]);
+                    }
                 }
                 break;
 

@@ -40,20 +40,36 @@
                     </div>
                 </div>
 
-                <!-- Payment Reminder -->
-                <div class="rounded-xl bg-[#ff9500]/10 border border-[#ff9500]/20 p-3 flex items-center gap-2 text-sm text-[#ff9500] mt-3">
-                    <div class="flex items-center gap-3">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                            <path stroke-linecap="round" stroke-lineflex="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                        </svg>
-                        <div>
-                            <h6 class="font-semibold mb-1">Selesaikan Pembayaran</h6>
-                            <p class="mb-0 text-sm">
-                                Silakan selesaikan pembayaran sebelum batas waktu untuk mengunci jadwal layanan Anda.
-                            </p>
+                @if($booking->payment_expired_at)
+                    <div class="rounded-xl bg-[#ff9500]/10 border border-[#ff9500]/20 p-3 mt-3">
+                        <div class="flex items-center gap-3">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-[#ff9500] shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            </svg>
+                            <div>
+                                <h6 class="font-semibold mb-1">Batas Waktu Pembayaran</h6>
+                                <p class="mb-0 text-sm">Selesaikan sebelum <strong>{{ \Carbon\Carbon::parse($booking->payment_expired_at)->translatedFormat('d F Y H:i') }}</strong> untuk mengunci jadwal layanan Anda.</p>
+                            </div>
                         </div>
                     </div>
-                </div>
+                @else
+                    <div class="rounded-xl bg-[#ff9500]/10 border border-[#ff9500]/20 p-3 flex items-center gap-2 text-sm text-[#ff9500] mt-3">
+                        <div class="flex items-center gap-3">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                <path stroke-linecap="round" stroke-lineflex="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            </svg>
+                            <div>
+                                <h6 class="font-semibold mb-1">Selesaikan Pembayaran</h6>
+                                <p class="mb-0 text-sm">Silakan selesaikan pembayaran sebelum batas waktu untuk mengunci jadwal layanan Anda.</p>
+                            </div>
+                        </div>
+                    </div>
+                @endif
+                @if($booking->payment_status === 'paid')
+                    <div class="rounded-xl bg-[#34c759]/10 border border-[#34c759]/20 p-3 mt-3 text-sm text-[#1d7a3a]">✅ Sudah dibayar — tidak bisa dibayar lagi. <a href="{{ route('customer.layanan.my-bookings') }}" class="underline font-medium">Lihat booking</a></div>
+                @elseif(in_array($booking->payment_status, ['failed','expired']))
+                    <div class="rounded-xl bg-[#ff3b30]/10 border border-[#ff3b30]/20 p-3 mt-3 text-sm text-[#b91c1c]">❌ Pembayaran {{ $booking->payment_status==='expired'?'kedaluwarsa':'gagal' }} — buat booking baru untuk membayar lagi.</div>
+                @endif
             </div>
         </div>
 

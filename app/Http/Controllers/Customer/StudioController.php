@@ -258,6 +258,7 @@ class StudioController extends Controller
             'catatan' => $request->catatan,
             'payment_status' => 'pending',
             'status' => 'pending',
+            'payment_expired_at' => now()->addMinutes((int) config('midtrans.expiry_duration', 1440)),
         ]);
 
         \App\Models\Notification::sendToAdmins('transaction',
@@ -332,6 +333,17 @@ class StudioController extends Controller
         if ($booking->payment_status === 'paid') {
             return redirect()->route('customer.studio.booking.success', $booking->id);
         }
+        if (in_array($booking->payment_status, ['failed','expired','cancelled','deny']) || $booking->status === 'cancelled') {
+            return redirect()->route('customer.studio.my-bookings')->with('error', 'Booking sudah dibatalkan/ditolak. Silakan buat booking baru.');
+        }
+        if ($booking->isExpired()) {
+            $booking->update(['payment_status' => 'expired', 'status' => 'cancelled']);
+            return redirect()->route('customer.studio.my-bookings')->with('error', 'Waktu pembayaran habis. Silakan buat booking baru.');
+        }
+        // Reuse token jika sudah ada dan belum expired (hindari order_id sudah digunakan)
+        if ($booking->midtrans_token && $booking->midtrans_order_id && !$booking->isExpired()) {
+            return view('customer.studio.payment', ['booking' => $booking, 'snapToken' => $booking->midtrans_token]);
+        }
 
         $snapToken = null;
         try {
@@ -383,6 +395,11 @@ class StudioController extends Controller
                 'callbacks' => [
                     'finish' => route('customer.studio.booking.success', $booking->id),
                 ],
+                'expiry' => [
+                    'start_time' => date('Y-m-d H:i:s O'),
+                    'unit' => 'minute',
+                    'duration' => (int) config('midtrans.expiry_duration', 1440),
+                ],
             ];
 
             if ($booking->paymentMethod && $booking->paymentMethod->midtrans_payment_type) {
@@ -395,6 +412,7 @@ class StudioController extends Controller
                 'midtrans_order_id' => $orderId,
                 'midtrans_token' => $snapToken,
                 'midtrans_redirect_url' => route('customer.studio.payment', $booking->id),
+                'payment_expired_at' => now()->addMinutes((int) config('midtrans.expiry_duration', 1440)),
             ]);
             $booking->refresh();
 
@@ -465,14 +483,21 @@ class StudioController extends Controller
     {
         switch ($request->transaction_status) {
             case 'capture':
-                // Kartu kredit: hanya accept yang lunas, challenge tetap pending
+                // Kartu kredit: hanya accept yang lunas, challenge tetap pending, deny dibatalkan
                 if (($request->fraud_status ?? null) === 'challenge') {
                     if ($booking->payment_status !== 'paid') {
                         $booking->update(['payment_status' => 'pending']);
                     }
                     break;
                 }
+                if (($request->fraud_status ?? null) === 'deny') {
+                    if ($booking->payment_status !== 'paid') {
+                        $booking->update(['payment_status' => 'failed', 'status' => 'cancelled']);
+                    }
+                    break;
+                }
                 if (($request->fraud_status ?? null) !== 'accept') {
+                    Log::warning('Midnotif studio: capture tanpa fraud accept/deny', ['fraud' => $request->fraud_status, 'booking_id' => $booking->id]);
                     break;
                 }
                 $this->markBookingPaid($booking);
@@ -481,19 +506,21 @@ class StudioController extends Controller
                 $this->markBookingPaid($booking);
                 break;
             case 'pending':
-                // Jangan turunkan booking yang sudah lunas/direfund
-                if (!in_array($booking->payment_status, ['paid', 'refunded'])) {
+                // Jangan turunkan booking yang sudah lunas/refund/expired/failed/cancelled (anti-resurrect)
+                if (!in_array($booking->payment_status, ['paid', 'refunded', 'expired', 'failed']) && $booking->status !== 'cancelled') {
                     $booking->update(['payment_status' => 'pending']);
                 }
                 break;
             case 'deny':
             case 'cancel':
+            case 'failure':
                 // Jangan batalkan booking yang sudah dibayar (uang sudah masuk)
                 if ($booking->payment_status === 'paid') {
-                    Log::warning('Midnotif studio: deny/cancel diabaikan untuk booking lunas', ['booking_id' => $booking->id]);
+                    Log::warning('Midnotif studio: deny/cancel/failure diabaikan untuk booking lunas', ['booking_id' => $booking->id]);
                     break;
                 }
                 $booking->update(['payment_status' => 'failed', 'status' => 'cancelled']);
+                \App\Models\Voucher::releaseByCode($booking->kode_voucher);
                 break;
             case 'expire':
                 if ($booking->payment_status === 'paid') {
@@ -501,6 +528,7 @@ class StudioController extends Controller
                     break;
                 }
                 $booking->update(['payment_status' => 'expired', 'status' => 'cancelled']);
+                \App\Models\Voucher::releaseByCode($booking->kode_voucher);
                 break;
             case 'refund':
                 $booking->update(['payment_status' => 'refunded']);

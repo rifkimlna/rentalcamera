@@ -87,7 +87,7 @@ class ProductController extends Controller
         // Generate slug
         $validated['slug'] = Str::slug($validated['nama_produk']) . '-' . Str::random(6);
         
-        // Handle spesifikasi JSON
+        // Handle spesifikasi JSON - biarkan casts array yang encode (hindari double json_encode)
         if ($request->filled('spesifikasi')) {
             $spesifikasi = [];
             foreach ($request->spesifikasi as $spec) {
@@ -95,7 +95,7 @@ class ProductController extends Controller
                     $spesifikasi[$spec['key']] = $spec['value'];
                 }
             }
-            $validated['spesifikasi'] = !empty($spesifikasi) ? json_encode($spesifikasi) : null;
+            $validated['spesifikasi'] = !empty($spesifikasi) ? $spesifikasi : null;
         } else {
             $validated['spesifikasi'] = null;
         }
@@ -108,7 +108,7 @@ class ProductController extends Controller
             $validated['gambar_utama'] = $path;
         }
         
-        // Handle gambar tambahan
+        // Handle gambar tambahan - biarkan casts array yang encode
         $gambarTambahan = [];
         if ($request->hasFile('gambar_tambahan')) {
             foreach ($request->file('gambar_tambahan') as $image) {
@@ -116,7 +116,7 @@ class ProductController extends Controller
                 $path = $image->storeAs('products/additional', $filename, 'public');
                 $gambarTambahan[] = $path;
             }
-            $validated['gambar_tambahan'] = !empty($gambarTambahan) ? json_encode($gambarTambahan) : null;
+            $validated['gambar_tambahan'] = !empty($gambarTambahan) ? $gambarTambahan : null;
         } else {
             $validated['gambar_tambahan'] = null;
         }
@@ -210,7 +210,7 @@ public function show($id)
             $validated['slug'] = Str::slug($validated['nama_produk']) . '-' . Str::random(6);
         }
         
-        // Handle spesifikasi JSON
+        // Handle spesifikasi JSON - biarkan casts array yang encode
         if ($request->filled('spesifikasi')) {
             $spesifikasi = [];
             foreach ($request->spesifikasi as $spec) {
@@ -218,7 +218,7 @@ public function show($id)
                     $spesifikasi[$spec['key']] = $spec['value'];
                 }
             }
-            $validated['spesifikasi'] = !empty($spesifikasi) ? json_encode($spesifikasi) : null;
+            $validated['spesifikasi'] = !empty($spesifikasi) ? $spesifikasi : null;
         } else {
             $validated['spesifikasi'] = null;
         }
@@ -236,7 +236,7 @@ public function show($id)
             $validated['gambar_utama'] = $path;
         }
         
-        // Handle gambar tambahan
+        // Handle gambar tambahan - biarkan casts array yang encode
         if ($request->hasFile('gambar_tambahan')) {
             $gambarTambahan = is_array($product->gambar_tambahan) ? $product->gambar_tambahan : (json_decode($product->gambar_tambahan, true) ?? []);
             foreach ($request->file('gambar_tambahan') as $image) {
@@ -244,7 +244,7 @@ public function show($id)
                 $path = $image->storeAs('products/additional', $filename, 'public');
                 $gambarTambahan[] = $path;
             }
-            $validated['gambar_tambahan'] = !empty($gambarTambahan) ? json_encode($gambarTambahan) : null;
+            $validated['gambar_tambahan'] = !empty($gambarTambahan) ? $gambarTambahan : null;
         }
         
         // Update stok_tersedia based on new stok_total

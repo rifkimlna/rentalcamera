@@ -322,6 +322,7 @@ class CheckoutController extends Controller
                     'diskon_voucher' => $diskon,
                     'payment_status' => 'pending',
                     'status' => 'pending',
+                    'payment_expired_at' => now()->addMinutes((int) config('midtrans.expiry_duration', 1440)),
                 ]);
 
                 session()->forget('direct_layanan');
@@ -418,6 +419,7 @@ class CheckoutController extends Controller
                     'diskon_voucher' => $diskon,
                     'payment_status' => 'pending',
                     'status' => 'pending',
+                    'payment_expired_at' => now()->addMinutes((int) config('midtrans.expiry_duration', 1440)),
                 ]);
 
                 session()->forget('direct_studio');
@@ -653,6 +655,17 @@ class CheckoutController extends Controller
         if ($transaksi->status_pembayaran === 'settlement') {
             return redirect()->route('customer.checkout.success', $transaksi->id);
         }
+
+        // FIX: Jika sudah deny/cancel/expire/failure/dibatalkan, jangan generate token lagi
+        if (in_array($transaksi->status_pembayaran, ['deny', 'cancel', 'expire', 'failure']) || $transaksi->status_transaksi === 'dibatalkan') {
+            return redirect()->route('customer.checkout.failed', $transaksi->id)
+                ->with('error', 'Transaksi ini sudah dibatalkan/ditolak ('.$transaksi->status_pembayaran.'). Silakan buat pesanan baru. Stok sudah dikembalikan.');
+        }
+
+        // Reuse token jika sudah ada dan belum expired (hindari error order_id sudah digunakan)
+        if ($transaksi->midtrans_token && $transaksi->midtrans_order_id && !$this->midtransService->isTransactionExpired($transaksi)) {
+            return view('customer.checkout.payment', ['transaksi' => $transaksi, 'snapToken' => $transaksi->midtrans_token]);
+        }
         
         // Generate snap token untuk Midtrans
         $snapToken = null;
@@ -660,6 +673,15 @@ class CheckoutController extends Controller
             $snapToken = $this->midtransService->generateSnapToken($transaksi);
         } catch (\Exception $e) {
             Log::error('Midtrans token generation failed: ' . $e->getMessage());
+            // Jika error karena dibatalkan, redirect ke failed agar user buat baru
+            if (str_contains($e->getMessage(), 'dibatalkan/ditolak')) {
+                return redirect()->route('customer.checkout.failed', $transaksi->id)
+                    ->with('error', $e->getMessage());
+            }
+            // Jika order_id sudah digunakan (user refresh), pakai token lama jika ada
+            if (str_contains($e->getMessage(), 'sudah digunakan') && $transaksi->midtrans_token) {
+                return view('customer.checkout.payment', ['transaksi' => $transaksi, 'snapToken' => $transaksi->midtrans_token]);
+            }
         }
         
         if ($snapToken) {

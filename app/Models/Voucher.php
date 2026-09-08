@@ -148,7 +148,7 @@ class Voucher extends Model
         if ($this->is_expired) {
             return 0;
         }
-        return now()->diffInDays($this->end_date);
+        return (int) ceil(now()->diffInDays($this->end_date));
     }
 
     public function calculateDiscount($amount)

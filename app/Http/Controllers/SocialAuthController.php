@@ -6,20 +6,25 @@ use App\Models\User;
 use Laravel\Socialite\Facades\Socialite;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Str;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
 
 class SocialAuthController extends Controller
 {
-    public function redirectToGoogle()
+    public function redirectToGoogle(Request $request)
     {
-        return Socialite::driver('google')->redirect();
+        $redirect = trim($request->getSchemeAndHttpHost() . '/auth/google/callback');
+        return Socialite::driver('google')->redirectUrl($redirect)->redirect();
     }
 
-    public function handleGoogleCallback()
+    public function handleGoogleCallback(Request $request)
     {
         try {
-            $googleUser = Socialite::driver('google')->user();
+            $redirect = trim($request->getSchemeAndHttpHost() . '/auth/google/callback');
+            $googleUser = Socialite::driver('google')->redirectUrl($redirect)->user();
         } catch (\Exception $e) {
-            return redirect()->route('login')->withErrors(['email' => 'Gagal login dengan Google. Silakan coba lagi.']);
+            Log::error('Google OAuth callback error: ' . $e->getMessage(), ['exception' => $e]);
+            return redirect()->route('login')->withErrors(['email' => 'Gagal login dengan Google. Silakan coba lagi. (' . $e->getMessage() . ')']);
         }
 
         $user = User::where('google_id', $googleUser->getId())->first();
@@ -50,7 +55,6 @@ class SocialAuthController extends Controller
         }
 
         Auth::login($user);
-        $request = request();
         $user->last_login_at = now();
         $user->last_login_ip = $request->ip();
         $user->save();

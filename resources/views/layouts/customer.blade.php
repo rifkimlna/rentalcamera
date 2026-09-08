@@ -151,9 +151,7 @@
                     <div class="flex items-center gap-2">
                         @auth
                             <div class="hidden lg:flex items-center gap-2">
-                                <div class="w-8 h-8 rounded-full bg-[#1d1d1f] text-white flex items-center justify-center text-xs font-semibold">
-                                    {{ strtoupper(substr(auth()->user()->nama, 0, 1)) }}
-                                </div>
+                                <x-avatar :user="auth()->user()" :size="32" />
                                 <span class="text-sm text-[#6e6e73]">{{ auth()->user()->nama }}</span>
                             </div>
                         @else

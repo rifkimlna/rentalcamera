@@ -10,8 +10,14 @@
         <div class="p-5 relative">
             <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                 <div class="flex items-center gap-4 min-w-0">
-                    <div class="w-14 h-14 rounded-2xl bg-white/20 backdrop-blur flex items-center justify-center text-2xl font-bold shrink-0">
-                        @auth{{ substr(Auth::user()->nama, 0, 1) }}@else S @endauth
+                    <div class="w-14 h-14 rounded-2xl bg-white/20 backdrop-blur flex items-center justify-center text-2xl font-bold shrink-0 overflow-hidden">
+                        @auth
+                            @if(Auth::user()->foto_profil)
+                                <img src="{{ asset('storage/' . Auth::user()->foto_profil) }}" alt="{{ Auth::user()->nama }}" class="w-full h-full object-cover">
+                            @else
+                                {{ strtoupper(substr(Auth::user()->nama, 0, 1)) }}
+                            @endif
+                        @else S @endauth
                     </div>
                     <div class="min-w-0">
                         @auth
@@ -212,6 +218,7 @@
         <!-- Sidebar -->
         <div class="space-y-4 sm:space-y-5">
             @auth
+            {{-- Komen sidang - Verifikasi Akun disembunyikan
             <div class="card-apple-static">
                 <div class="p-5">
                     <h5 class="font-semibold mb-4">Verifikasi Akun</h5>
@@ -237,6 +244,7 @@
                     <a href="{{ route('profile') }}" class="btn-outline-apple w-full mt-2">Kelola Profil</a>
                 </div>
             </div>
+            --}}
             @else
             <div class="card-apple-static">
                 <div class="p-5 text-center">

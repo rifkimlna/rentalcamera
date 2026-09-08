@@ -8,24 +8,30 @@
 @plugin "@tailwindcss/forms";
 @plugin "@tailwindcss/typography";
 
-/* ===== MODERN RENTAL DESIGN SYSTEM — Clean / Glass / Blue #2563EB ===== */
+/* ===== MODERN RENTAL DESIGN SYSTEM — Clean / Glass / Soft Color ===== */
 
 @theme {
   --font-sans: 'Plus Jakarta Sans', 'Inter', ui-sans-serif, system-ui, -apple-system, sans-serif;
 
-  /* Surfaces */
+  /* Surfaces — selaras admin Apple grey */
   --color-surface: #ffffff;
   --color-surface-dim: #f8fafc;
+  --color-surface-apple: #f5f5f7;
   --color-surface-dark: #0f172a;
   --color-surface-darker: #020617;
 
   --color-ink: #0f172a;
+  --color-ink-apple: #1d1d1f;
   --color-ink-muted: #475569;
+  --color-ink-muted-apple: #6e6e73;
   --color-ink-faint: #94a3b8;
+  --color-ink-faint-apple: #86868b;
   --color-ink-inverse: #f8fafc;
 
   --color-border: #e2e8f0;
   --color-border-light: #f1f5f9;
+  --color-border-apple: #e5e5e7;
+  --color-border-apple-light: #f0f0f2;
 
   /* Brand — minimalis hitam-putih */
   --color-brand: #111111;
@@ -33,6 +39,18 @@
   --color-brand-active: #000000;
   --color-brand-soft: #f5f5f5;
   --color-brand-ring: rgba(0, 0, 0, 0.12);
+
+  /* Soft accent — minimalis berwarna (tidak hitam-putih flat) */
+  --color-accent-emerald: #10b981;
+  --color-accent-emerald-soft: #ecfdf5;
+  --color-accent-blue: #3b82f6;
+  --color-accent-blue-soft: #eff6ff;
+  --color-accent-violet: #8b5cf6;
+  --color-accent-violet-soft: #f5f3ff;
+  --color-accent-amber: #f59e0b;
+  --color-accent-amber-soft: #fffbeb;
+  --color-accent-red: #d70015;
+  --color-accent-red-soft: #fef2f2;
 }
 
 /* ===== BASE RESET ===== */
@@ -133,6 +151,71 @@ body {
   color: var(--color-ink-inverse);
 }
 
+/* ===== ADMIN DESIGN SYSTEM — Selaras Minimalis Berwarna Soft ===== */
+
+@utility admin-card {
+  @apply bg-white overflow-hidden transition-all duration-200;
+  border: 1px solid var(--color-border-apple);
+  border-radius: 24px;
+}
+@utility admin-card-hover {
+  border-color: rgba(0,0,0,0.08);
+  box-shadow: 0 8px 24px rgba(0,0,0,0.04);
+  transform: translateY(-1px);
+}
+@utility admin-pill {
+  @apply inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium border;
+  border-color: var(--color-border-apple);
+  background: var(--color-surface-apple);
+  color: var(--color-ink-muted-apple);
+}
+@utility admin-kpi-label {
+  @apply text-[10px] font-semibold tracking-[0.14em] uppercase;
+  color: var(--color-ink-faint-apple);
+}
+@utility admin-icon-circle {
+  @apply w-8 h-8 rounded-full flex items-center justify-center shrink-0;
+}
+@utility admin-icon-circle-sm {
+  @apply w-7 h-7 rounded-full flex items-center justify-center shrink-0;
+}
+@utility admin-table-head {
+  @apply text-xs font-medium tracking-wide uppercase;
+  color: var(--color-ink-faint-apple);
+  border-bottom: 1px solid var(--color-border-apple-light);
+}
+@utility admin-filter-pill {
+  @apply inline-flex items-center gap-2 bg-white border rounded-full px-2 py-1.5 shadow-sm;
+  border-color: var(--color-border-apple);
+}
+
+.input-apple-sm {
+  @apply w-full px-3 py-2 rounded-xl text-sm transition-all duration-200 outline-none;
+  background: var(--color-surface-apple);
+  border: 1px solid transparent;
+  color: var(--color-ink-apple);
+}
+.input-apple-sm:focus {
+  border-color: var(--color-brand);
+  background: var(--color-surface);
+  box-shadow: 0 0 0 3px var(--color-brand-ring);
+}
+.select-apple-sm {
+  @apply w-full px-3 py-2 rounded-xl text-sm transition-all duration-200 outline-none appearance-none cursor-pointer;
+  background: var(--color-surface-apple);
+  border: 1px solid transparent;
+  color: var(--color-ink-apple);
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%2386868b' d='M6 8.825a.5.5 0 01-.354-.146l-3.5-3.5a.5.5 0 11.708-.708L6 7.618l3.146-3.147a.5.5 0 11.708.708l-3.5 3.5A.5.5 0 016 8.825z'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 0.9rem center;
+  padding-right: 2.2rem;
+}
+.select-apple-sm:focus {
+  border-color: var(--color-brand);
+  background-color: var(--color-surface);
+  box-shadow: 0 0 0 3px var(--color-brand-ring);
+}
+
 /* ===== BUTTONS ===== */
 
 .btn-primary-apple {
@@ -202,9 +285,10 @@ body {
 /* ===== CARDS ===== */
 
 .card-apple {
-  @apply rounded-2xl overflow-hidden transition-all duration-300;
+  @apply overflow-hidden transition-all duration-300;
+  border-radius: 24px;
   background: var(--color-surface);
-  border: 1px solid var(--color-border-light);
+  border: 1px solid var(--color-border-apple);
 }
 
 .card-apple:hover {
@@ -213,9 +297,10 @@ body {
 }
 
 .card-apple-static {
-  @apply rounded-2xl overflow-hidden;
+  @apply overflow-hidden;
+  border-radius: 24px;
   background: var(--color-surface);
-  border: 1px solid var(--color-border-light);
+  border: 1px solid var(--color-border-apple);
 }
 
 .card-dark {
@@ -475,6 +560,13 @@ body {
   -webkit-line-clamp: 3;
   -webkit-box-orient: vertical;
   overflow: hidden;
+}
+
+@utility line-clamp-none {
+  display: block;
+  -webkit-line-clamp: unset;
+  -webkit-box-orient: horizontal;
+  overflow: visible;
 }
 
 /* ===== HOMEPAGE MICRO-INTERACTIONS ===== */

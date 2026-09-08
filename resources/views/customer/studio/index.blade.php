@@ -30,70 +30,53 @@
     <!-- Studio grid -->
     <div class="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-4 lg:gap-5">
     @forelse($studios as $studio)
-        <div class="card-apple-static rounded-2xl overflow-hidden hover:shadow-xl transition-all duration-300 hover:-translate-y-1">
-            <!-- Image (like home category box) -->
+        <div class="card-apple overflow-hidden">
             <a href="{{ route('customer.studio.show', $studio->slug) }}" class="group relative overflow-hidden bg-[#f5f5f7] aspect-square block">
                 @if($studio->gambar_utama)
-                    <img src="{{ asset('storage/' . $studio->gambar_utama) }}"
-                         class="absolute inset-0 w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" alt="{{ $studio->nama_studio }}">
+                    <img src="{{ asset('storage/' . $studio->gambar_utama) }}" class="absolute inset-0 w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" alt="{{ $studio->nama_studio }}">
                 @else
-                    <div class="absolute inset-0 flex items-center justify-center bg-gradient-to-br from-slate-200 via-slate-100 to-[#f5f5f7]">
-                        <svg class="h-16 w-16 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1"><path stroke-linecap="round" stroke-linejoin="round" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+                    <div class="absolute inset-0 flex items-center justify-center bg-gradient-to-br from-[#f0f0f2] to-[#e5e5e7]">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-12 sm:h-16 w-12 sm:w-16 text-[#d1d1d6]" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="0.8"><path stroke-linecap="round" stroke-linejoin="round" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
                     </div>
                 @endif
-                <div class="absolute inset-0 bg-gradient-to-t from-black/80 via-black/25 to-transparent"></div>
+                <div class="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent"></div>
 
                 <div class="absolute bottom-0 left-0 right-0 p-2.5 sm:p-3 lg:p-4 text-white">
                     <p class="text-xs sm:text-sm lg:text-base font-semibold truncate">{{ $studio->nama_studio }}</p>
                     <div class="flex items-center gap-0.5 sm:gap-1 mt-0.5 sm:mt-1">
-                        <div class="flex items-center gap-0.5">
-                            @for($i = 1; $i <= 5; $i++)
-                                <svg xmlns="http://www.w3.org/2000/svg" class="h-2.5 w-2.5 sm:h-3 sm:w-3 {{ $i <= round($studio->rating) ? 'text-[#ff9500]' : 'text-white/30' }}" fill="currentColor" viewBox="0 0 24 24">
-                                    <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
-                                </svg>
-                            @endfor
-                        </div>
-                        <span class="text-[10px] sm:text-xs text-white/80">({{ $studio->rating }})</span>
+                        @for($i = 1; $i <= 5; $i++)
+                            <svg class="h-2.5 w-2.5 sm:h-3 sm:w-3 {{ $i <= round($studio->rating) ? 'text-[#ff9500]' : 'text-white/30' }}" fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/></svg>
+                        @endfor
+                        <span class="text-[10px] sm:text-xs text-white/70 ml-0.5 sm:ml-1">({{ $studio->rating }})</span>
                     </div>
                 </div>
             </a>
 
-            <!-- Body -->
             <div class="p-2.5 sm:p-3 lg:p-4 bg-white">
                 <div class="flex items-center justify-between gap-1.5 mb-1.5 sm:mb-2">
-                    <div>
-                        <span class="text-xs sm:text-sm lg:text-base font-bold text-[#1d1d1f]">{{ $studio->harga_per_jam_formatted }}</span>
-                        <span class="text-[10px] sm:text-xs text-[#6e6e73]">/jam</span>
-                        @if($studio->paket_active_count > 0)
-                            <span class="text-[10px] sm:text-xs text-[#86868b] block mt-0.5">{{ $studio->paket_active_count }} paket</span>
-                        @endif
+                    <div class="min-w-0">
+                        <div class="flex items-baseline gap-1">
+                            <span class="text-xs sm:text-sm lg:text-base font-bold text-[#1d1d1f]">{{ $studio->harga_per_jam_formatted }}</span>
+                            <span class="text-[10px] sm:text-xs text-[#86868b]">/jam</span>
+                        </div>
                     </div>
                 </div>
 
-                @if($studio->fasilitas)
-                    @php $fasilitasList = is_array($studio->fasilitas) ? $studio->fasilitas : array_map('trim', explode(',', $studio->fasilitas)); @endphp
-                    <div class="flex flex-wrap gap-1 mb-2 sm:mb-3">
-                        @foreach(array_slice($fasilitasList, 0, 3) as $f)
+                <div class="flex items-center gap-1 mb-2 sm:mb-3 flex-wrap">
+                    @if($studio->paket_active_count > 0)
+                        <span class="badge-apple !text-[9px] sm:!text-[10px] !px-1.5 sm:!px-2 !py-0">{{ $studio->paket_active_count }} paket</span>
+                    @endif
+                    @if($studio->fasilitas)
+                        @php $fasilitasList = is_array($studio->fasilitas) ? $studio->fasilitas : array_map('trim', explode(',', $studio->fasilitas)); @endphp
+                        @foreach(array_slice($fasilitasList, 0, 2) as $f)
                             <span class="badge-apple !text-[9px] sm:!text-[10px] !px-1.5 sm:!px-2 !py-0">{{ $f }}</span>
                         @endforeach
-                        @if(count($fasilitasList) > 3)
-                            <span class="badge-apple !text-[9px] sm:!text-[10px] !px-1.5 sm:!px-2 !py-0">+{{ count($fasilitasList) - 3 }}</span>
-                        @endif
-                    </div>
-                @endif
+                    @endif
+                </div>
 
                 <div class="flex gap-1.5 sm:gap-2">
-                    <a href="{{ route('customer.studio.show', $studio->slug) }}" class="btn-outline-apple flex-1 !text-[11px] sm:!text-xs lg:!text-sm !py-1.5 sm:!py-2">Detail</a>
-                    @if($studio->paketActive->count() > 0)
-                        {{-- Tamu diarahkan ke detail dulu (sama seperti Equipment); user login langsung buka modal booking --}}
-                        @auth
-                            <button type="button" class="btn-dark-apple flex-1 !text-[11px] sm:!text-xs lg:!text-sm !py-1.5 sm:!py-2" onclick="openStudioModal({{ $studio->id }})">Sewa</button>
-                        @else
-                            <a href="{{ route('customer.studio.show', $studio->slug) }}" class="btn-dark-apple flex-1 !text-[11px] sm:!text-xs lg:!text-sm !py-1.5 sm:!py-2 text-center">Sewa</a>
-                        @endauth
-                    @else
-                        <a href="{{ route('customer.studio.show', $studio->slug) }}" class="btn-dark-apple flex-1 !text-[11px] sm:!text-xs lg:!text-sm !py-1.5 sm:!py-2 text-center">Sewa</a>
-                    @endif
+                    <a href="{{ route('customer.studio.show', $studio->slug) }}" class="flex-1 text-center text-[11px] sm:text-xs lg:text-sm font-medium py-1.5 sm:py-2 rounded-lg lg:rounded-xl border border-[#e5e5e7] text-[#1d1d1f] hover:bg-[#f5f5f7] transition-colors">Detail</a>
+                    <button type="button" onclick="openStudioModal({{ $studio->id }})" class="flex-1 text-center text-[11px] sm:text-xs lg:text-sm font-medium py-1.5 sm:py-2 rounded-lg lg:rounded-xl bg-[#1d1d1f] text-white hover:bg-[#333] active:scale-[0.98] transition-all">Sewa</button>
                 </div>
             </div>
         </div>
@@ -113,45 +96,42 @@
     @endif
 </div>
 
-<!-- Modal Sewa Studio -->
-<dialog id="studioModal" class="modal">
-    <div class="modal-box max-w-lg rounded-2xl">
-        <form method="dialog">
-            <button class="absolute right-4 top-4 text-[#6e6e73] hover:text-[#1d1d1f] hover:bg-[#f5f5f7] rounded-full p-2 transition-all">&times;</button>
-        </form>
-        <h3 class="font-bold text-lg mb-1" id="modalStudioName">Sewa Studio</h3>
-        <p class="text-sm text-[#6e6e73] mb-4" id="modalStudioPrice">Pilih paket atau sewa per jam</p>
+<!-- Modal Sewa Studio — Kotak Kecil Laptop -->
+<dialog id="studioModal" class="p-0 bg-transparent backdrop:bg-black/30 backdrop:backdrop-blur-[2px] open:animate-[fadeIn_0.2s_ease] max-w-none w-full h-full max-h-none items-center justify-center p-3">
+    <div class="bg-white rounded-xl shadow-[0_8px_24px_rgba(0,0,0,0.12)] w-full mx-auto my-auto overflow-hidden max-h-[75vh] overflow-y-auto" style="max-width:280px; width: calc(100vw - 32px);">
+        <div class="sticky top-0 bg-white px-4 lg:px-3 pt-4 lg:pt-3 pb-3 lg:pb-2.5 border-b border-[#f0f0f2]">
+            <h3 class="text-[13px] lg:text-[12px] font-semibold text-[#1d1d1f] tracking-tight leading-none" id="modalStudioName">Sewa Studio</h3>
+            <p class="text-[11px] lg:text-[10px] text-[#86868b] leading-none mt-1" id="modalStudioPrice">Pilih paket atau sewa per jam</p>
+        </div>
 
-        <form id="studioBookingForm">
+        <form id="studioBookingForm" class="px-4 lg:px-3 pb-4 lg:pb-3 pt-3 lg:pt-2.5">
             @csrf
             <input type="hidden" name="studio_id" id="modal_studio_id">
             <input type="hidden" name="tipe_booking" id="modal_tipe_booking" value="studio">
             <input type="hidden" name="paket_studio_id" id="modal_paket_studio_id" value="">
 
-            <!-- Paket List -->
             <div id="modalPaketList" class="space-y-2 mb-4"></div>
 
-            <!-- Booking Date & Time -->
-            <div class="grid grid-cols-2 gap-3 mb-4">
+            <div class="grid grid-cols-2 gap-2 mb-3">
                 <div>
-                    <label class="block text-xs font-medium text-[#6e6e73] mb-1">Tanggal</label>
-                    <input type="date" name="tanggal_booking" class="input-apple w-full" required min="{{ date('Y-m-d') }}">
+                    <label class="block text-[10px] font-medium text-[#86868b] tracking-wide uppercase mb-1">Tanggal</label>
+                    <input type="date" name="tanggal_booking" class="input-apple !py-1.5 !text-[12px] !rounded-lg w-full" required min="{{ date('Y-m-d') }}">
                 </div>
                 <div>
-                    <label class="block text-xs font-medium text-[#6e6e73] mb-1">Jam Mulai</label>
-                    <input type="time" name="jam_mulai" class="input-apple w-full" required>
+                    <label class="block text-[10px] font-medium text-[#86868b] tracking-wide uppercase mb-1">Jam Mulai</label>
+                    <input type="time" name="jam_mulai" class="input-apple !py-1.5 !text-[12px] !rounded-lg w-full" required>
                 </div>
             </div>
 
-            <button type="submit" class="btn-dark-apple w-full" id="modalBookingBtn">
-                Lanjutkan ke Checkout
-            </button>
+            <div class="flex gap-2">
+                <button type="button" class="flex-1 py-2 rounded-full border border-[#e5e5e7] text-[12px] font-medium text-[#6e6e73] hover:bg-[#f5f5f7] hover:text-[#1d1d1f] active:scale-[0.98] transition" onclick="studioModal.close()">Batal</button>
+                <button type="submit" class="flex-1 py-2 rounded-full bg-[#1d1d1f] text-white text-[12px] font-semibold hover:bg-black active:scale-[0.98] transition flex items-center justify-center" id="modalBookingBtn">Lanjutkan</button>
+            </div>
+            <p class="text-[11px] text-[#86868b] text-center mt-3">Slot akan dicek otomatis sebelum checkout</p>
         </form>
     </div>
-    <form method="dialog" class="modal-backdrop">
-        <button>close</button>
-    </form>
 </dialog>
+<style>@keyframes fadeIn{from{opacity:0;transform:scale(0.98)}to{opacity:1;transform:scale(1)}} dialog::backdrop{background:rgba(0,0,0,0.3);backdrop-filter:blur(2px)} dialog[open]{display:flex}</style>
 
 @push('scripts')
 <script>
@@ -159,6 +139,16 @@
     const STUDIO_IS_GUEST = {{ auth()->check() ? 'false' : 'true' }};
     const STUDIO_LOGIN_URL = '{{ route("login") }}';
 
+    // backdrop click close + minimal card helper
+    document.getElementById('studioModal')?.addEventListener('click', function(e){ if(e.target===this) this.close(); });
+    function updateRadioCards() {
+        document.querySelectorAll('#modalPaketList > div').forEach(function(card){
+            const radio = card.querySelector('input[type="radio"]');
+            if(!radio) return;
+            if(radio.checked){ card.classList.add('border-[#1d1d1f]','bg-[#f5f5f7]'); card.classList.remove('border-[#f0f0f2]','border-[#e5e5e7]'); }
+            else { card.classList.remove('border-[#1d1d1f]','bg-[#f5f5f7]'); card.classList.add('border-[#f0f0f2]'); }
+        });
+    }
     function openStudioModal(studioId) {
         if (STUDIO_IS_GUEST) {
             alert('Silakan login terlebih dahulu untuk menyewa.');
@@ -175,54 +165,62 @@
         const paketList = document.getElementById('modalPaketList');
         paketList.innerHTML = '';
 
-        // Custom jam option
+        // Custom jam option — minimal card compact
         const customDiv = document.createElement('div');
-        customDiv.className = 'flex items-center gap-3 p-3 rounded-xl border border-[#f0f0f2] cursor-pointer hover:bg-[#f5f5f7] has-checked:border-[#1d1d1f] has-checked:bg-[#f5f5f7] transition-all';
+        customDiv.className = 'flex items-center gap-2.5 p-2.5 rounded-xl border cursor-pointer hover:bg-[#f5f5f7] transition-all';
         customDiv.innerHTML = `
-            <input type="radio" name="tipe_booking_radio" value="studio" class="radio radio-sm" checked>
-            <div class="flex-1">
-                <strong class="text-sm">Sewa per Jam</strong>
-                <p class="text-xs text-[#6e6e73]">Fleksibel, bayar per jam</p>
+            <input type="radio" name="tipe_booking_radio" value="studio" class="radio radio-sm shrink-0" checked>
+            <div class="flex-1 min-w-0">
+                <strong class="text-[13px] text-[#1d1d1f]">Sewa per Jam</strong>
+                <p class="text-[11px] text-[#86868b]">Fleksibel, bayar per jam</p>
             </div>
-            <div class="text-right">
-                <strong class="text-sm">${studio.harga_per_jam_formatted}</strong>
-                <p class="text-xs text-[#6e6e73]">/ jam</p>
+            <div class="text-right shrink-0">
+                <strong class="text-[13px] text-[#1d1d1f]">${studio.harga_per_jam_formatted}</strong>
+                <p class="text-[10px] text-[#86868b]">/ jam</p>
             </div>
         `;
+        customDiv.addEventListener('click', function(){ this.querySelector('input').checked=true; togglePaketInput(); updateRadioCards(); });
         paketList.appendChild(customDiv);
 
-        // Duration input (for custom hours)
+        // Duration input
         const durasiDiv = document.createElement('div');
         durasiDiv.id = 'durasiManual';
-        durasiDiv.className = 'mt-2';
+        durasiDiv.className = 'mt-2 mb-1';
         durasiDiv.innerHTML = `
-            <label class="block text-xs font-medium text-[#6e6e73] mb-1">Durasi (jam)</label>
-            <input type="number" name="durasi_jam" class="input-apple w-full" value="1" min="1" max="8">
+            <label class="block text-[11px] font-medium text-[#86868b] tracking-wide uppercase mb-1.5">Durasi (jam)</label>
+            <div class="flex items-center rounded-xl bg-[#f5f5f7] p-0.5">
+                <button type="button" class="w-8 h-8 rounded-lg bg-white shadow-sm flex items-center justify-center" onclick="let e=this.nextElementSibling; if(parseInt(e.value)>1){e.value=parseInt(e.value)-1;}">−</button>
+                <input type="number" name="durasi_jam" class="flex-1 bg-transparent text-center text-sm font-semibold outline-none py-1.5" value="1" min="1" max="8">
+                <button type="button" class="w-8 h-8 rounded-lg bg-white shadow-sm flex items-center justify-center" onclick="let e=this.previousElementSibling; e.value=parseInt(e.value)+1;">+</button>
+            </div>
         `;
         paketList.appendChild(durasiDiv);
 
-        // Paket options
+        // Paket options — minimal compact
         studio.paketActive.forEach(function(paket) {
             const div = document.createElement('div');
-            div.className = 'flex items-center gap-3 p-3 rounded-xl border border-[#f0f0f2] cursor-pointer hover:bg-[#f5f5f7] has-checked:border-[#1d1d1f] has-checked:bg-[#f5f5f7] transition-all';
+            div.className = 'flex items-center gap-2.5 p-2.5 rounded-xl border cursor-pointer hover:bg-[#f5f5f7] transition-all';
             div.innerHTML = `
-                <input type="radio" name="tipe_booking_radio" value="paket" data-paket-id="${paket.id}" data-durasi="${paket.durasi_jam}" class="radio radio-sm">
+                <input type="radio" name="tipe_booking_radio" value="paket" data-paket-id="${paket.id}" data-durasi="${paket.durasi_jam}" class="radio radio-sm shrink-0">
                 <div class="flex-1 min-w-0">
-                    <strong class="text-sm">${paket.nama_paket}</strong>
-                    <p class="text-xs text-[#6e6e73] truncate">${paket.deskripsi || ''}</p>
-                    <span class="badge-apple mt-1">${paket.durasi_jam} jam</span>
-                    ${paket.include_alat ? `<span class="badge-apple border border-[#e5e5e7] mt-1">+ Alat</span>` : ''}
+                    <strong class="text-[13px] text-[#1d1d1f]">${paket.nama_paket}</strong>
+                    <p class="text-[11px] text-[#86868b] truncate">${paket.deskripsi || ''}</p>
+                    <div class="flex gap-1 mt-1">
+                        <span class="inline-flex text-[10px] px-2 py-0.5 rounded-full bg-[#f5f5f7] text-[#6e6e73] border border-transparent">${paket.durasi_jam} jam</span>
+                        ${paket.include_alat ? `<span class="inline-flex text-[10px] px-2 py-0.5 rounded-full bg-white border border-[#e5e5e7] text-[#6e6e73]">+ Alat</span>` : ''}
+                    </div>
                 </div>
                 <div class="text-right shrink-0">
-                    <strong class="text-sm">${paket.harga_formatted}</strong>
+                    <strong class="text-[13px] text-[#1d1d1f]">${paket.harga_formatted}</strong>
                 </div>
             `;
-            div.querySelector('input').addEventListener('change', function() {
-                togglePaketInput();
-            });
+            div.addEventListener('click', function(){ this.querySelector('input').checked=true; togglePaketInput(); updateRadioCards(); });
+            div.querySelector('input').addEventListener('change', function() { togglePaketInput(); updateRadioCards(); });
             paketList.appendChild(div);
         });
 
+        togglePaketInput();
+        updateRadioCards();
         document.getElementById('studioModal').showModal();
     }
 
@@ -243,6 +241,7 @@
     document.addEventListener('change', function(e) {
         if (e.target && e.target.name === 'tipe_booking_radio') {
             togglePaketInput();
+            updateRadioCards();
         }
     });
 
@@ -281,7 +280,7 @@
                     confirmButtonText: 'OK',
                 });
                 btn.disabled = false;
-                btn.textContent = 'Lanjutkan ke Checkout';
+                btn.textContent = 'Lanjutkan';
             }
         })
         .catch(() => {
@@ -294,7 +293,7 @@
                 confirmButtonText: 'OK',
             });
             btn.disabled = false;
-            btn.textContent = 'Lanjutkan ke Checkout';
+            btn.textContent = 'Lanjutkan';
         });
     });
 </script>

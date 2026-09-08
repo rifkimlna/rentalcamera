@@ -20,6 +20,7 @@ class SetDynamicAssetUrl
         }
         
         config(['app.url' => $url]);
+        config(['services.google.redirect' => trim($url . '/auth/google/callback')]);
         app('url')->forceRootUrl($url);
         
         return $next($request);

@@ -233,15 +233,13 @@
                 <div class="p-5">
                     <h5 class="font-semibold mb-4">Info User</h5>
                     <div class="flex items-center gap-3 mb-3">
-                        @if($review->user && $review->user->foto_profile)
-                            <img src="{{ asset('storage/' . $review->user->foto_profile) }}" 
+                        @if($review->user && $review->user->foto_profil)
+                            <img src="{{ asset('storage/' . $review->user->foto_profil) }}" 
                                  alt="{{ $review->user->nama }}" 
-                                 class="rounded-full w-12 h-12 object-cover">
+                                 class="rounded-full w-12 h-12 object-cover border border-[#e5e5e7]">
                         @else
-                            <div class="bg-[#f5f5f7] rounded-full flex items-center justify-center w-12 h-12">
-                                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-[#6e6e73]" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
-                                    <path stroke-linecap="round" stroke-linejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                                </svg>
+                            <div class="bg-[#f5f5f7] border border-[#e5e5e7] rounded-full flex items-center justify-center w-12 h-12">
+                                <x-avatar :user="$review->user" :size="48" />
                             </div>
                         @endif
                         <div>
